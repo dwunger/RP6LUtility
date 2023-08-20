@@ -1,12 +1,16 @@
-void OpenFileExist(char path[]) {
-    if (FindOpenFile(path) != -1) {
+void OpenFileExist(char path[]) 
+{
+    if (FindOpenFile(path) != -1) 
+	{
         FileSelect(FindOpenFile(path));
-    } else {
+    } else 
+	{
         FileOpen(path, false, "Hex", false);
     }
 }
 
-uint32 ByteSwap32( uint32 value) {
+uint32 ByteSwap32( uint32 value) 
+{
     uint32 iLittleE = ((value & 0xFF) << 24)
                         | ((value & 0xFF00) << 8)
                         | ((value >> 8) & 0xFF00)
@@ -15,13 +19,9 @@ uint32 ByteSwap32( uint32 value) {
 }
 
 char modifier[] = "THIS FILE HAS BEEN MODIFIED";
-//char backup_string[] = "METADATA BACKUP";
 
-
-//char rpack[] = InputOpenFileName("Select a file to modify", "rpack (*.rpack)", "");
-//Assert((Strcmp(rpack, "") != 0), "no rpack file was selected.");
-
-if (GetFileNum() == -1) {
+if (GetFileNum() == -1) 
+{
     MessageBox(idOk, "Script", "%s", "You haven't selected a rpack file, please select a rpack.");
     char rpack[] = InputOpenFileName("Select a rpack to modify", "rpack (*.rpack)", "");
     Assert((Strcmp(rpack, "") != 0), "no rpack file was selected.");
@@ -50,10 +50,11 @@ uint64 isFileModified = 0, isBackuped = 0, newOffset = 0, newSize = 0, newSectio
 int i,j,l,k,index;
 uint64 file_offset,filesize,filename_offset,filename_end, meta_start;
 filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
-filename_end = filename_offset + header.fnames_siez;
+filename_end = filename_offset + header.fnames_size;
 //meta_start = filename_end;
 
-for (i = 0; i < header.sections; i++) {
+for (i = 0; i < header.sections; i++) 
+{
 	meta_start += section[i].unpackedsize;
 	sectionSize[i] = section[i].unpackedsize;
 }
@@ -64,7 +65,8 @@ ushort width, height;
 ubyte tex_type, mip_count, isDXT10, isPassThrough;
 
 //Create a local file for meta once only
-if (FileExists(rpack + ".meta")) {
+if (FileExists(rpack + ".meta")) 
+{
 	OpenFileExist(rpack + ".meta");
 	meta_start = ReadUInt64(0);
 	
@@ -72,13 +74,15 @@ if (FileExists(rpack + ".meta")) {
 	OpenFileExist(rpack);
 	isFileModified = FindFirst(modifier ,true, true, 0, 0.0, 1, meta_start, Strlen(modifier));
 	
-	if (isFileModified > 0) {
+	if (isFileModified > 0) 
+	{
 	// restore backup data
         OpenFileExist(rpack + ".meta");
         ReadBytes(meta_backup, 8, meta_size);
         OpenFileExist(rpack);
 		WriteBytes(meta_backup, 36, meta_size);
-        if (FileSize() > meta_start) {
+        if (FileSize() > meta_start) 
+		{
 		    DeleteBytes(meta_start, FileSize() - meta_start);
         }
 		FileSave();
@@ -105,49 +109,15 @@ if (FileExists(rpack + ".meta")) {
 	OpenFileExist(rpack);
 }
 
-
-
-/*
-isBackuped = FindFirst(backup_string, 1, 1, 0, 0, 1, );
-if (isBackuped < 0) {
-    ReadBytes(meta_backup, 36, meta_size);
-    WriteString(FileSize(), backup_string);
-    InsertBytes(FileSize(), 1, 0);
-    WriteBytes(meta_backup, FileSize(), meta_size);
-	padding = 0;
-	if ((FileSize()) % 16 != 0) {
-		padding = 16 - (FileSize()) % 16;
-	}
-    InsertBytes(FileSize(), padding, 0);
-}
-*/
-/*
-isFileModified = FindFirst(modifier);
-
-// test if file has been modified by script before
-if (isFileModified > 0) {
-    DeleteBytes(isFileModified, FileSize() - isFileModified);
-    //s = ReadString(isFileModified);
-    //Printf("%s", s);
-    //restore meta
-    WriteBytes(meta_backup, 36, meta_size);
-}
-
-WriteString(FileSize(), modifier);
-InsertBytes(FileSize(), 5, 0);
-*/
-
 string GetResourceName(int fileIndex) {
     string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
     return filename;
 }
 
-
-
 uint64 f_offset;
 int GetFileIndex(string Filename) {
-	//f_offset = FindFirst(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_siez);
-    TFindResults fa = FindAll(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_siez);
+	//f_offset = FindFirst(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_size);
+    TFindResults fa = FindAll(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_size);
 	if (fa.count > 0) {
         for (j = 0; j < fa.count; j++) {
             if (ReadUByte(fa.start[j] + fa.size[j]) == 0) { //make sure it matches null terminated string

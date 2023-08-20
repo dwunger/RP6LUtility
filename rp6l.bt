@@ -10,7 +10,7 @@ struct {
     uint parts;
     uint sections;
     uint files;
-    uint fnames_siez;
+    uint fnames_size;
     uint fnames;
     uint alignment; //maybe for offset bitshift
 } header;

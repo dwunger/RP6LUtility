@@ -1,11 +1,15 @@
+//Skip textures not matching pattern:
+char texture_pattern[] = "grass";
+
 //dds header writer
 int isDXT10 = 1;
-//int headerSize = 124;
+
+//base headerSize is 124 and automatically expands
+
 int bpp = 0;
 int isCompressed = 0;
 
 uint pitch = 0;
-//string s;
 
 uint DDSD_CAPS           = 0x00000001;
 uint DDSD_HEIGHT         = 0x00000002;
@@ -30,10 +34,14 @@ uint DDPF_RGB            = 0x00000040;
 uint DDPF_NORMAL         = 0x80000000;
 
 
-uint computePitch(uint width, uint height, int bpp, int isCompressed) {
-	if (isCompressed == 1) {
-		uint pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	//because of uint it will auto math floor
-	} else {
+uint computePitch(uint width, uint height, int bpp, int isCompressed) 
+{
+	if (isCompressed == 1) 
+	{
+		uint pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
+	} 
+	else 
+	{
 		uint pitch = ( width * bpp + 7 ) / 8;
 	}
 	return pitch;
@@ -41,14 +49,16 @@ uint computePitch(uint width, uint height, int bpp, int isCompressed) {
 
 //required flags for dds
 uint flags = 0, hasFOURCC = 0;
-void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex_type, uint depth) {
+void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex_type, uint depth) 
+{
     InsertBytes(0, 4 + 124, 0);
 	isDXT10 = 0;
 	isCompressed = 0;
 	hasFOURCC = 0;
 	flags = DDSD_CAPS | DDSD_PIXELFORMAT | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
 	//bits per pixels
-	switch(format) {
+	switch(format) 
+	{
 		case 0:
 		case 1:
 		case 5:
@@ -103,22 +113,21 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
 			break;
 	}
     
-	if (depth > 1) {
+	if (depth > 1) 
+	{
 		flags = flags | DDSD_DEPTH;
 	}
 	
-    WriteUInt(0, 542327876);    //DDS 
-    WriteUInt(4, 124);    //generic headerSize
+    WriteUInt(0, 542327876);                                       //DDS 
+    WriteUInt(4, 124);                                             //generic headerSize
     
-    
-    WriteUInt(8, flags); //flags
-	WriteUInt(12, height);	//height
-	WriteUInt(16, width);	//width
+    WriteUInt(8, flags);                                           //flags
+	WriteUInt(12, height);	                                       //height
+	WriteUInt(16, width);	                                       //width
 	WriteUInt(20, computePitch(width, height, bpp, isCompressed)); //pitch
-	WriteUInt(24, depth); //depth
-	WriteUInt(28, mip_count);	//mip_count
+	WriteUInt(24, depth);                                          //depth
+	WriteUInt(28, mip_count);	                                   //mip_count
 	
-	//reserverd[11] 44 Bytes
 	//ddspf
 	WriteUInt(76, 32); //size
 	
@@ -126,53 +135,64 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
 	//use DX10 for uncompressed and except dxt1
 	WriteUInt(80, flags); 	//flags
 
-	if (format == 59) {
+	if (format == 59) 
+	{
 		WriteUInt(84, 827611204);
-	} else {
+	} 
+	else 
+	{
 		WriteUInt(84, 808540228);
 		InsertBytes(128, 20, 0);
 	}
 	
 	//caps
 	flags = DDSCAPS_TEXTURE;
-	if (mip_count > 1) {
+	if (mip_count > 1) 
+	{
 		flags = flags | DDSCAPS_COMPLEX;
 	}
 	
-	if (depth > 1) {
+	if (depth > 1) 
+	{
 		flags = flags | DDSCAPS_COMPLEX;
 	}
 	
-	if (tex_type != 0) {
+	if (tex_type != 0) 
+	{
 		flags = flags | DDSCAPS_COMPLEX;
 	}
 	WriteUInt(108, flags);
 	
 	//caps2
     flags = 0;
-	if (tex_type == 1) {
+	if (tex_type == 1) 
+	{
 		flags = DDSCAPS2_CUBEMAP;
-	} else if (tex_type == 2) {
+	} 
+	else if (tex_type == 2) 
+	{
 		flags = DDSCAPS2_VOLUME;
 	}
 	WriteUInt(112, flags);
 	
-    if (format != 59) {
+    if (format != 59) 
+	{
 	    //dxt10 header
-	    switch (format) {
-		    case 0: //R8_UNORM
+	    switch (format) 
+		{
+		    case 0:     //R8_UNORM
 			    format = 61;
 			    break;
-		    case 1: //R8_SNORM
+		    case 1:     //R8_SNORM
 			    format = 63;
 			    break;
-		    case 5: //R8_UNORM 
+		    case 5:     //R8_UNORM 
 			    format = 61;
 			    break;
-		    case 7: //R16_UNORM
+		    case 7:     //R16_UNORM
 			    format = 56;
 			    break;
-		    case 8: //R16_SNORM
+		    case 8:     //R16_SNORM
 			    format = 58;
 			    break;
 		    case 10:    //R16_SINT
@@ -243,13 +263,16 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
 			    break;
 	    }
 	    WriteUInt(128, format);	//dxgiFormat
-	    if (tex_type == 2) {
+	    if (tex_type == 2) 
+		{
 		    WriteUInt(132, 4);
-	    } else {
+	    } 
+		else 
+		{
 		    WriteUInt(132, 3);
 	    }
-	    
-	    if (tex_type == 1) {
+	    if (tex_type == 1) 
+		{
 		    WriteUInt(136, 4);	//miscFlag
 	    }
 	    WriteUInt(140, 1);	//arraySize
@@ -257,78 +280,72 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
 	
 }
 
-void OpenFileExist(char path[]) {
-    if (FindOpenFile(path) != -1) {
+void OpenFileExist(char path[]) 
+{
+    if (FindOpenFile(path) != -1) 
+	{
         FileSelect(FindOpenFile(path));
-    } else {
+    } 
+	else 
+	{
         FileOpen(path, false, "Hex", false);
     }
 }
 
 char rpack[] = InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", "");
 Assert((Strcmp(rpack, "") != 0), "rpack file not selected.");
-OpenFileExist(rpack);
 
-//Printf("%s\n", rpack);
+OpenFileExist(rpack);
 
 RunTemplate("rp6l.bt");
 int i,j;
 string s,savepath;
-//should be enough for textures
+
+//Set buffer for textures ~20MB
 uchar buffer[20000000+80];
 char rpack_name[] = FileNameGetBase(rpack);
 char rpack_name_no_ext[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
 char rpack_path[] = FileNameGetPath(rpack);
 
-//Printf("%s\n%s\n%s\n", rpack_name, rpack_name_no_ext, rpack_path);
-
 uint64 file_offset,file_size,filename_offset;
 filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
-//Printf("%i", filename_offset);
-//Printf("%s %s\n", rpack_path, rpack_name);
 
-string GetResourceName(int fileIndex) {
+string GetResourceName(int fileIndex) 
+{
     string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
     return filename;
 }
-//Printf("%s %s", GetResourceName(112), GetResourceName(3));
 
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture) {
+string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
+{
     string savepath = rpack_path + rpack_name_no_ext + "_unpack\\" + ResourceName + "\\";
 
     MakeDir(savepath);
-    if (IsTexture == 1) {
+    if (IsTexture == 1) 
+	{
         savepath += ResourceName;
-    } else {
+    } 
+	else 
+	{
         savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
     }
     return savepath;
 }
 
-//char RawtexCMD[] = InputOpenFileName("Select RawtexCmd.exe", "EXE (*.exe)", "RawtexCmd.exe");
-//Assert((Strcmp(RawtexCMD, "") != 0), "Required program not found.");
-//char arg[];
-
-//Printf("%s", RawtexCMD);
-
-
-
-
 int IsTexture = 0;
 int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
 
-//Printf("%s", GetResourceSavePath(GetResourceName(2), 0, 0));
-        
-
-for (i = 0; i < header.files; i++) {
-    for (j = 0; j < filemap[i].partsCount; j++) {
+for (i = 0; i < header.files; i++) 
+{
+    for (j = 0; j < filemap[i].partsCount; j++) 
+	{
         OpenFileExist(rpack);
-        // Check if GetResourceName contains the substring "nature".
-        
-        // Check if GetResourceName contains the substring "nature".
-        if (Strstr(GetResourceName(i), "grass") == -1) {
+        // Test GetResourceName for pattern defined in header
+        if (Strstr(GetResourceName(i), texture_pattern) == -1) 
+		{
             continue;  // If not found, skip to next iteration of the loop.
         }
+
         //File Size
         file_size = filepart[filemap[i].firstPart + j].size;
         //File Offset
@@ -341,11 +358,10 @@ for (i = 0; i < header.files; i++) {
         IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
         savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
 
-        //as it turns out it's not always 80 bytes so disabled
-        //read the width&height in the header to determine the header type
-        //Printf("%s\n", GetResourceName(i));
-        if (IsTexture == 1) {
-            if (j == 0) {
+        if (IsTexture == 1) 
+		{
+            if (j == 0) 
+			{
                 FileSaveRange(savepath + ".header", file_offset, file_size);
                 headerSize = ReadUInt(file_offset + 8);
                 headerType = ReadUInt(file_offset + 64);
@@ -355,32 +371,35 @@ for (i = 0; i < header.files; i++) {
                 depth = ReadUByte(file_offset + 68);
                 mip_count = (ReadUByte(file_offset + 71) >> 2);
                 tex_type = (ReadUByte(file_offset + 71) & 0x03);    // 0 = 2d, 1 = cubemap, 2 = 3d
-            } else {
-                if (headerType != 0) {
+            } 
+			else 
+			{
+                if (headerType != 0) 
+				{
                     FileSaveRange(savepath + ".dds", file_offset, file_size);
                     OpenFileExist(savepath + ".dds");
                     dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
                     FileSave();
                     FileClose();
-
-                   
-                    
                 }
             }
-        } else {
+        } 
+		else 
+		{
             FileSaveRange(savepath, file_offset, file_size);
         }
         FileSelect(FindOpenFileW(rpack_path + rpack_name));
     }
 }
 
-
 //header.bin
 FileSaveRange(rpack_path + rpack_name_no_ext + "_unpack\\header.bin", 0, 36);
 
 //section.bin
 buffer[0] = header.sections;
-for (i = 0; i < header.sections; i++) {
+
+for (i = 0; i < header.sections; i++) 
+{
     buffer[5*i + 1] = section[i].filetype;
     buffer[5*i + 2] = section[i].type2;
     buffer[5*i + 3] = section[i].type3;
@@ -396,15 +415,18 @@ FileClose();
 FileSelect(FindOpenFileW(rpack_path + rpack_name));
 
 //file desc
-for (i = 0; i < header.files; i++) {
-    // Check if GetResourceName contains the substring "nature".
-    if (Strstr(GetResourceName(i), "grass") == -1) {
+for (i = 0; i < header.files; i++) 
+{
+    // Test for pattern defined in header
+    if (Strstr(GetResourceName(i), texture_pattern) == -1) 
+	{
         continue;  // If not found, skip to next iteration of the loop.
     }
     buffer[0] = filemap[i].partsCount;
     buffer[1] = filemap[i].filetype;
     buffer[2] = filemap[i].unk2;
-    for (j = 0; j < filemap[i].partsCount; j++) {
+    for (j = 0; j < filemap[i].partsCount; j++) 
+	{
         buffer[3 + j * 2] =filepart[filemap[i].firstPart + j].sectionIndex;
         buffer[4 + j * 2] =filepart[filemap[i].firstPart + j].unk1;
     }
