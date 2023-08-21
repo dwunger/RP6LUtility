@@ -1,5 +1,5 @@
 //Skip textures not matching pattern:
-char texture_pattern[] = "grass";
+char texture_pattern[] = "grass_tall";
 
 //dds header writer
 int isDXT10 = 1;
@@ -304,7 +304,7 @@ string s,savepath;
 //Set buffer for textures ~20MB
 uchar buffer[20000000+80];
 char rpack_name[] = FileNameGetBase(rpack);
-char rpack_name_no_ext[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
+char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
 char rpack_path[] = FileNameGetPath(rpack);
 
 uint64 file_offset,file_size,filename_offset;
@@ -318,7 +318,11 @@ string GetResourceName(int fileIndex)
 
 string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
 {
-    string savepath = rpack_path + rpack_name_no_ext + "_unpack\\" + ResourceName + "\\";
+	string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
+	if (Part == 0)
+	{
+    	savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
+	}
 
     MakeDir(savepath);
     if (IsTexture == 1) 
@@ -334,7 +338,8 @@ string GetResourceSavePath(string ResourceName, int Part, int IsTexture)
 
 int IsTexture = 0;
 int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
-
+//header.files corresponds to total number of files in rpack
+//
 for (i = 0; i < header.files; i++) 
 {
     for (j = 0; j < filemap[i].partsCount; j++) 
@@ -362,6 +367,7 @@ for (i = 0; i < header.files; i++)
 		{
             if (j == 0) 
 			{
+				savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
                 FileSaveRange(savepath + ".header", file_offset, file_size);
                 headerSize = ReadUInt(file_offset + 8);
                 headerType = ReadUInt(file_offset + 64);
@@ -376,6 +382,7 @@ for (i = 0; i < header.files; i++)
 			{
                 if (headerType != 0) 
 				{
+					savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
                     FileSaveRange(savepath + ".dds", file_offset, file_size);
                     OpenFileExist(savepath + ".dds");
                     dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
@@ -393,7 +400,7 @@ for (i = 0; i < header.files; i++)
 }
 
 //header.bin
-FileSaveRange(rpack_path + rpack_name_no_ext + "_unpack\\header.bin", 0, 36);
+FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
 
 //section.bin
 buffer[0] = header.sections;
@@ -407,8 +414,8 @@ for (i = 0; i < header.sections; i++)
     buffer[5*i + 5] = section[i].unk;
 }
 uint buffersize = header.sections * 5 + 1;
-FileSaveRange(rpack_path + rpack_name_no_ext + "_unpack\\section.bin", 0, 0);
-FileOpen(rpack_path + rpack_name_no_ext + "_unpack\\section.bin", false, "Hex", false);
+FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
+FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
 WriteBytes(buffer, 0, buffersize);
 FileSave();
 FileClose();
@@ -431,7 +438,7 @@ for (i = 0; i < header.files; i++)
         buffer[4 + j * 2] =filepart[filemap[i].firstPart + j].unk1;
     }
     buffersize = 3 + filemap[i].partsCount * 2;
-    savepath = rpack_path + rpack_name_no_ext + "_unpack\\" + GetResourceName(i) + ".desc";
+    savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
     FileSaveRange(savepath, 0, 0);
     FileOpen(savepath, false, "Hex", false);
     WriteBytes(buffer, 0, buffersize);
