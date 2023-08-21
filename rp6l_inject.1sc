@@ -141,8 +141,12 @@ int GetFileIndex(string Filename) {
 
 OpenFileExist(rpack);
 //RunTemplate("rp6l.bt");
+char meta_folder[] = "\\meta\\";
+char textures_folder[] = "\\textures\\";
+// char meta_folder[] = repack_folder  + "\\meta\\";
+//TFileList fl = FindFiles( repack_folder, "*.desc" );
+TFileList fl = FindFiles( repack_folder + meta_folder, "*.desc" );
 
-TFileList fl = FindFiles( repack_folder, "*.desc" );
 if (fl.filecount > 0) {
 	WriteString(FileSize(), modifier);
 	InsertBytes(FileSize(), 5, 0);
@@ -151,7 +155,7 @@ if (fl.filecount > 0) {
     for (i = 0; i < fl.filecount; i++) {
         inject_filename = SubStr(fl.file[i].filename, 0, Strlen(fl.file[i].filename) - 5);
 		index = GetFileIndex(inject_filename);
-		//Printf("%s\n", GetResourceName(index));
+		Printf("%s\n", GetResourceName(index));
 		if (index != -1) {
 			//Printf("ok");
 			for (l = 0; l < filemap[index].partsCount; l++) {
@@ -163,7 +167,7 @@ if (fl.filecount > 0) {
 				
 				
 				if (filemap[index].filetype != 32) {	//not texture resource
-					OpenFileExist(repack_folder + inject_filename + "\\" + SPrintf( s, "%d", l) + "_" + inject_filename);
+					OpenFileExist(repack_folder + meta_folder + SPrintf( s, "%d", l) + "_" + inject_filename);
 					filesize = FileSize();
 					ReadBytes(buffer2, 0, filesize);
 					FileClose();
@@ -191,7 +195,7 @@ if (fl.filecount > 0) {
 				else
 				{
 					if (l == 0) {
-						OpenFileExist(repack_folder + inject_filename + "\\" + inject_filename + ".header");
+						OpenFileExist(repack_folder + meta_folder + inject_filename + ".header");
 						filesize = ReadUInt(8);
 						headerType = ReadUInt(64);
 						tex_type = (ReadUByte(71) & 0x03);
@@ -204,7 +208,7 @@ if (fl.filecount > 0) {
 						
 						//format = original_format;
 						if (headerType != 0) {
-							OpenFileExist(repack_folder + inject_filename + "\\" + inject_filename + ".dds");
+							OpenFileExist(repack_folder + textures_folder + inject_filename + ".dds");
 							//too slow
 							//RunTemplate("DDS.bt");
 							
@@ -219,12 +223,7 @@ if (fl.filecount > 0) {
 							GBitMask = (ReadUInt(96));
 							BBitMask = (ReadUInt(100));
 							ABitMask = (ReadUInt(104));
-/*							
-							Printf("%u\n", flags);
-							Printf("%u\n", RBitMask == 0x000000ff);
-							Printf("%u\n", GBitMask == 0x0000ff00);
-							Printf("%u\n", BBitMask == 0x00ff0000);
-*/							
+						
 							if (flags & 0x00000040)	//DDS_RGB         
 							{
 								switch (RGBBitCount)
@@ -472,6 +471,7 @@ if (fl.filecount > 0) {
 							else
 							{
 								Assert(0, inject_filename + ": Unsupported DDS format detected.");
+                                
 							}
 							/*
 							if (format != original_format) {
@@ -482,7 +482,7 @@ if (fl.filecount > 0) {
 							
 							FileClose();
 							//update the header
-							OpenFileExist(repack_folder + inject_filename + "\\" + inject_filename + ".header");
+							OpenFileExist(repack_folder + meta_folder + inject_filename + ".header");
 							WriteUShort(64, (ushort)width);
 							WriteUShort(66, (ushort)height);
 							WriteUByte(71, (mip_count << 2) | tex_type);
@@ -521,7 +521,7 @@ if (fl.filecount > 0) {
 						InsertBytes(FileSize(), filesize + padding, 0);
 						WriteBytes(buffer2, FileSize() - filesize - padding, filesize);
 					} else {
-						OpenFileExist(repack_folder + inject_filename + "\\" + inject_filename + ".dds");
+						OpenFileExist(repack_folder + textures_folder  + inject_filename + ".dds");
 						filesize = FileSize();
 						
 						//read fourcc
