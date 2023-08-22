@@ -1,5 +1,5 @@
 //Skip textures not matching pattern:
-char texture_pattern[] = "grass_tall";
+char texture_pattern[] = "ac_vent";
 
 //dds header writer
 int isDXT10 = 1;

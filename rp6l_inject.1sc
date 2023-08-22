@@ -50,7 +50,7 @@ uint64 isFileModified = 0, isBackuped = 0, newOffset = 0, newSize = 0, newSectio
 int i,j,l,k,index;
 uint64 file_offset,filesize,filename_offset,filename_end, meta_start;
 filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
-filename_end = filename_offset + header.fnames_size;
+filename_end = filename_offset + header.fnames_siez;
 //meta_start = filename_end;
 
 for (i = 0; i < header.sections; i++) 
@@ -116,8 +116,8 @@ string GetResourceName(int fileIndex) {
 
 uint64 f_offset;
 int GetFileIndex(string Filename) {
-	//f_offset = FindFirst(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_size);
-    TFindResults fa = FindAll(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_size);
+	//f_offset = FindFirst(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_siez);
+    TFindResults fa = FindAll(Filename, true, true, 0, 0.0, 1, filename_offset, header.fnames_siez);
 	if (fa.count > 0) {
         for (j = 0; j < fa.count; j++) {
             if (ReadUByte(fa.start[j] + fa.size[j]) == 0) { //make sure it matches null terminated string
@@ -138,14 +138,38 @@ int GetFileIndex(string Filename) {
 		return -1;
 	}
 }
+//Declare new & old directory structures, third item will resolve to whichever path exists
+char dds_to_inject_old[];
+char dds_to_inject_new[];
+char dds_to_inject[];
+
+char dds_header_old[];
+char dds_header_new[];
+char dds_header[];
+
+char unknown_path_old[];
+char unknown_path_new[];
+char unknown_path[];
 
 OpenFileExist(rpack);
 //RunTemplate("rp6l.bt");
+//new directories
 char meta_folder[] = "\\meta\\";
 char textures_folder[] = "\\textures\\";
 // char meta_folder[] = repack_folder  + "\\meta\\";
 //TFileList fl = FindFiles( repack_folder, "*.desc" );
+
+int GetFileCount(string dir, string filter) {
+    TFileList localFl = FindFiles(dir, filter);
+    return localFl.filecount;
+}
+
 TFileList fl = FindFiles( repack_folder + meta_folder, "*.desc" );
+int count = GetFileCount(repack_folder + meta_folder, "*.desc");
+if (count < 1)
+{
+	fl = FindFiles( repack_folder, "*.desc" );
+}
 
 if (fl.filecount > 0) {
 	WriteString(FileSize(), modifier);
@@ -156,6 +180,50 @@ if (fl.filecount > 0) {
         inject_filename = SubStr(fl.file[i].filename, 0, Strlen(fl.file[i].filename) - 5);
 		index = GetFileIndex(inject_filename);
 		Printf("%s\n", GetResourceName(index));
+		////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////
+		//NEW DIRECTORY STRUCTURE
+		//Define old and new directory structures to support backwards compatibility
+		dds_to_inject_old = repack_folder + inject_filename + "\\" + inject_filename + ".dds";
+		dds_to_inject_new = repack_folder + textures_folder + inject_filename + ".dds";
+
+		if (FileExists(dds_to_inject_old))
+		{
+			dds_to_inject =  dds_to_inject_old;		
+		}
+		else
+		{
+			dds_to_inject = dds_to_inject_new;
+		}
+
+		//Injection headers
+		dds_header_old = repack_folder + inject_filename + "\\" + inject_filename + ".header";
+		dds_header_new = repack_folder + meta_folder + inject_filename + ".header";
+
+		if (FileExists(dds_header_old))
+		{
+			dds_header =  dds_header_old;		
+		}
+		else
+		{
+			dds_header =  dds_header_new;
+		}
+		//SPrintf behaves like Str?
+		//Not sure what this is, but carried it forward without issue
+		unknown_path_old = repack_folder + meta_folder + SPrintf( s, "%d", l) + "_" + inject_filename;
+		unknown_path_new = repack_folder + inject_filename + "\\" + SPrintf( s, "%d", l) + "_" + inject_filename;
+		if (FileExists(unknown_path_old))
+		{
+			unknown_path =  unknown_path_old;		
+		}
+		else
+		{
+			unknown_path =  unknown_path_new;
+		}
+		////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////
 		if (index != -1) {
 			//Printf("ok");
 			for (l = 0; l < filemap[index].partsCount; l++) {
@@ -166,8 +234,10 @@ if (fl.filecount > 0) {
 				}
 				
 				
-				if (filemap[index].filetype != 32) {	//not texture resource
-					OpenFileExist(repack_folder + meta_folder + SPrintf( s, "%d", l) + "_" + inject_filename);
+				if (filemap[index].filetype != 32) 
+				{	//not texture resource
+					
+					OpenFileExist(unknown_path);
 					filesize = FileSize();
 					ReadBytes(buffer2, 0, filesize);
 					FileClose();
@@ -195,7 +265,7 @@ if (fl.filecount > 0) {
 				else
 				{
 					if (l == 0) {
-						OpenFileExist(repack_folder + meta_folder + inject_filename + ".header");
+						OpenFileExist(dds_header);
 						filesize = ReadUInt(8);
 						headerType = ReadUInt(64);
 						tex_type = (ReadUByte(71) & 0x03);
@@ -208,7 +278,7 @@ if (fl.filecount > 0) {
 						
 						//format = original_format;
 						if (headerType != 0) {
-							OpenFileExist(repack_folder + textures_folder + inject_filename + ".dds");
+							OpenFileExist(dds_to_inject);
 							//too slow
 							//RunTemplate("DDS.bt");
 							
@@ -482,7 +552,7 @@ if (fl.filecount > 0) {
 							
 							FileClose();
 							//update the header
-							OpenFileExist(repack_folder + meta_folder + inject_filename + ".header");
+							OpenFileExist(dds_header);
 							WriteUShort(64, (ushort)width);
 							WriteUShort(66, (ushort)height);
 							WriteUByte(71, (mip_count << 2) | tex_type);
@@ -521,7 +591,7 @@ if (fl.filecount > 0) {
 						InsertBytes(FileSize(), filesize + padding, 0);
 						WriteBytes(buffer2, FileSize() - filesize - padding, filesize);
 					} else {
-						OpenFileExist(repack_folder + textures_folder  + inject_filename + ".dds");
+						OpenFileExist(dds_to_inject);
 						filesize = FileSize();
 						
 						//read fourcc
