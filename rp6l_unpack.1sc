@@ -1,6 +1,21 @@
 //Skip textures not matching pattern:
 char texture_pattern[] = "ac_vent";
 
+// Add additional exclusions for texture maps
+string exclusions[] = { "rgh", "msk", "clp", "nrm", "spc", "trn" };
+
+int isExcluded(string file) {
+    for (int i = 0; i < sizeof(exclusions) / sizeof(exclusions[0]); i++) {
+        char sub[] = exclusions[i];
+        if (Strstr(file, sub) != -1) {
+            return 1;  // Contains exclusion 
+        }
+    }
+    return 0;  // No match
+}
+
+
+
 //dds header writer
 int isDXT10 = 1;
 
