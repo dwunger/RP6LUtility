@@ -1,5 +1,24 @@
-//Skip textures not matching pattern:
+//Filter textures not matching pattern:
 char texture_pattern[] = "ac_vent";
+
+local struct excluded_types 
+{
+    /*Comment out any member to disable filtering*/
+    /*Example: will only unpack diffuse textures */
+    
+    //char dif[16] = "_dif"; //diffuse map
+    char nrm[16] = "_nrm"; // Normal map
+    char rgh[16] = "_rgh"; // Roughness map
+    char clp[16] = "_clp"; // Clip map
+    char msk[16] = "_msk"; // Mask map
+    char spc[16] = "_spc"; // Specular map
+    char trn[16] = "_trn"; // Transparency map
+    char ocl[16] = "_ocl"; // Occlusion map
+    char opc[16] = "_opc"; // Opacity map
+    char dpt[16] = "_dpt"; // Depth map  ??
+    char det[16] = "_det"; // Detail map ??
+    char idx[16] = "_idx"; // Index map  ??
+} textures;
 
 //dds header writer
 int isDXT10 = 1;
@@ -33,6 +52,57 @@ uint DDPF_FOURCC         = 0x00000004;
 uint DDPF_RGB            = 0x00000040;
 uint DDPF_NORMAL         = 0x80000000;
 
+char haystack[];
+char needle[];
+
+int contains( char haystack[], char needle[] )
+{
+    if (Strstr(haystack, needle) != -1)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int isExcluded(char file[]) {
+    if (exists(textures.dif) && contains(file, textures.dif)) {
+        return 1;
+    }
+    if (exists(textures.nrm) && contains(file, textures.nrm)) {
+        return 1;
+    }
+    if (exists(textures.rgh) && contains(file, textures.rgh)) {
+        return 1;
+    }
+    if (exists(textures.clp) && contains(file, textures.clp)) {
+        return 1;
+    }
+    if (exists(textures.msk) && contains(file, textures.msk)) {
+        return 1;
+    }
+    if (exists(textures.spc) && contains(file, textures.spc)) {
+        return 1;
+    }
+    if (exists(textures.trn) && contains(file, textures.trn)) {
+        return 1;
+    }
+    if (exists(textures.ocl) && contains(file, textures.ocl)) {
+        return 1;
+    }
+    if (exists(textures.opc) && contains(file, textures.opc)) {
+        return 1;
+    }
+    if (exists(textures.dpt) && contains(file, textures.dpt)) {
+        return 1;
+    }
+    if (exists(textures.det) && contains(file, textures.det)) {
+        return 1;
+    }
+    if (exists(textures.idx) && contains(file, textures.idx)) {
+        return 1;
+    }
+    return 0;
+}
 
 uint computePitch(uint width, uint height, int bpp, int isCompressed) 
 {
@@ -346,7 +416,7 @@ for (i = 0; i < header.files; i++)
 	{
         OpenFileExist(rpack);
         // Test GetResourceName for pattern defined in header
-        if (Strstr(GetResourceName(i), texture_pattern) == -1) 
+        if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i))) 
 		{
             continue;  // If not found, skip to next iteration of the loop.
         }
@@ -425,7 +495,7 @@ FileSelect(FindOpenFileW(rpack_path + rpack_name));
 for (i = 0; i < header.files; i++) 
 {
     // Test for pattern defined in header
-    if (Strstr(GetResourceName(i), texture_pattern) == -1) 
+    if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i)))
 	{
         continue;  // If not found, skip to next iteration of the loop.
     }
