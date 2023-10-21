@@ -1,5 +1,5 @@
 //Filter textures not matching pattern:
-char texture_pattern[] = "ac_vent";
+char texture_pattern[] = "sky";
 
 local struct excluded_types 
 {
@@ -7,17 +7,17 @@ local struct excluded_types
     /*Example: will only unpack diffuse textures */
     
     //char dif[16] = "_dif"; //diffuse map
-    char nrm[16] = "_nrm"; // Normal map
-    char rgh[16] = "_rgh"; // Roughness map
-    char clp[16] = "_clp"; // Clip map
-    char msk[16] = "_msk"; // Mask map
-    char spc[16] = "_spc"; // Specular map
-    char trn[16] = "_trn"; // Transparency map
-    char ocl[16] = "_ocl"; // Occlusion map
-    char opc[16] = "_opc"; // Opacity map
-    char dpt[16] = "_dpt"; // Depth map  ??
-    char det[16] = "_det"; // Detail map ??
-    char idx[16] = "_idx"; // Index map  ??
+    //char nrm[16] = "_nrm"; // Normal map
+    //char rgh[16] = "_rgh"; // Roughness map
+    //char clp[16] = "_clp"; // Clip map
+    //char msk[16] = "_msk"; // Mask map
+    //char spc[16] = "_spc"; // Specular map
+    //char trn[16] = "_trn"; // Transparency map
+    //char ocl[16] = "_ocl"; // Occlusion map
+    //char opc[16] = "_opc"; // Opacity map
+    //char dpt[16] = "_dpt"; // Depth map  ??
+    //char det[16] = "_det"; // Detail map ??
+    //char idx[16] = "_idx"; // Index map  ??
 } textures;
 
 //dds header writer
@@ -117,16 +117,97 @@ uint computePitch(uint width, uint height, int bpp, int isCompressed)
 	return pitch;
 }
 
-//required flags for dds
-uint flags = 0, hasFOURCC = 0;
-void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex_type, uint depth) 
+int get_dxt_header(int format) 
 {
-    InsertBytes(0, 4 + 124, 0);
-	isDXT10 = 0;
-	isCompressed = 0;
-	hasFOURCC = 0;
-	flags = DDSD_CAPS | DDSD_PIXELFORMAT | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
-	//bits per pixels
+	switch (format) 
+	{
+		case 0:     //R8_UNORM
+			format = 61;
+			break;
+		case 1:     //R8_SNORM
+			format = 63;
+			break;
+		case 5:     //R8_UNORM 
+			format = 61;
+			break;
+		case 7:     //R16_UNORM
+			format = 56;
+			break;
+		case 8:     //R16_SNORM
+			format = 58;
+			break;
+		case 10:    //R16_SINT
+			format = 59;
+			break;
+		case 15:    //R8G8_UNORM
+			format = 49;
+			break;
+		case 16:    //R8G8_SNORM
+			format = 51;
+			break;
+		case 17:    //R8G8_UINT
+			format = 50;
+			break;
+		case 20:    //R16G16_UNORM
+			format = 35;
+			break;
+		case 21:    //R16G16_SNORM
+			format = 37;
+			break;
+		case 22:    //R16G16_UINT
+			format = 36;
+			break;
+		case 32:    //R8G8B8A8_UNORM 
+			format = 28;
+			break;
+		case 38:    //R8G8B8A8_UNORM
+			format = 28;
+			break;
+		case 39:    //R8G8B8A8_SNORM
+			format = 31;
+			break;
+		case 40:    //R8G8B8A8_UINT
+			format = 30;
+			break;
+		case 46:    //R16G16B16A16_FLOAT
+			format = 10;
+			break;
+		case 47:    //R16G16B16A16_UNORM
+			format = 11;
+			break;
+		case 48:    //R16G16B16A16_SNORM
+			format = 13;
+			break;
+		case 59:    //BC1_UNORM
+			format = 71;
+			break;
+		case 62:    //BC4_SNORM
+			format = 81;
+			break;
+		case 63:    //BC4_UNORM
+			format = 80;
+			break;
+		case 64:    //BC5_SNORM
+			format = 84;
+			break;
+		case 65:    //BC5_UNORM
+			format = 83;
+			break;
+		case 66:    //BC6H_UF16
+			format = 95;
+			break;
+		case 68:    //BC7_UNORM
+			format = 98;
+			break;
+		default:
+			Assert(0, "Unsupported DDS format detected.");
+			break;
+	}	
+    return format;
+}
+
+int get_bpp(int format)
+{
 	switch(format) 
 	{
 		case 0:
@@ -182,6 +263,19 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
 			Assert(0, "Unsupported texture format detected.");
 			break;
 	}
+    return format;
+}
+//required flags for dds
+uint flags = 0, hasFOURCC = 0;
+void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex_type, uint depth) 
+{
+    InsertBytes(0, 4 + 124, 0);
+	isDXT10 = 0;
+	isCompressed = 0;
+	hasFOURCC = 0;
+	flags = DDSD_CAPS | DDSD_PIXELFORMAT | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
+	//bits per pixels
+    format = get_bpp(format);
     
 	if (depth > 1) 
 	{
@@ -248,90 +342,8 @@ void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex
     if (format != 59) 
 	{
 	    //dxt10 header
-	    switch (format) 
-		{
-		    case 0:     //R8_UNORM
-			    format = 61;
-			    break;
-		    case 1:     //R8_SNORM
-			    format = 63;
-			    break;
-		    case 5:     //R8_UNORM 
-			    format = 61;
-			    break;
-		    case 7:     //R16_UNORM
-			    format = 56;
-			    break;
-		    case 8:     //R16_SNORM
-			    format = 58;
-			    break;
-		    case 10:    //R16_SINT
-			    format = 59;
-			    break;
-		    case 15:    //R8G8_UNORM
-			    format = 49;
-			    break;
-		    case 16:    //R8G8_SNORM
-			    format = 51;
-			    break;
-		    case 17:    //R8G8_UINT
-			    format = 50;
-			    break;
-		    case 20:    //R16G16_UNORM
-			    format = 35;
-			    break;
-		    case 21:    //R16G16_SNORM
-			    format = 37;
-			    break;
-		    case 22:    //R16G16_UINT
-			    format = 36;
-			    break;
-		    case 32:    //R8G8B8A8_UNORM 
-			    format = 28;
-			    break;
-		    case 38:    //R8G8B8A8_UNORM
-			    format = 28;
-			    break;
-		    case 39:    //R8G8B8A8_SNORM
-			    format = 31;
-			    break;
-		    case 40:    //R8G8B8A8_UINT
-			    format = 30;
-			    break;
-		    case 46:    //R16G16B16A16_FLOAT
-			    format = 10;
-			    break;
-		    case 47:    //R16G16B16A16_UNORM
-			    format = 11;
-			    break;
-		    case 48:    //R16G16B16A16_SNORM
-			    format = 13;
-			    break;
-		    case 59:    //BC1_UNORM
-			    format = 71;
-			    break;
-		    case 62:    //BC4_SNORM
-			    format = 81;
-			    break;
-		    case 63:    //BC4_UNORM
-			    format = 80;
-			    break;
-		    case 64:    //BC5_SNORM
-			    format = 84;
-			    break;
-		    case 65:    //BC5_UNORM
-			    format = 83;
-			    break;
-		    case 66:    //BC6H_UF16
-			    format = 95;
-			    break;
-		    case 68:    //BC7_UNORM
-			    format = 98;
-			    break;
-		    default:
-                Assert(0, "Unsupported DDS format detected.");
-			    break;
-	    }
+		format = get_dxt_header(format);
+
 	    WriteUInt(128, format);	//dxgiFormat
 	    if (tex_type == 2) 
 		{
