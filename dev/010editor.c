@@ -40,13 +40,34 @@ void init_emulator() {
  *   `OpenProcessByName` functions.
  */
 
-int FileOpen(const char *filename, const int runTemplate, \
-        const char *editAs, const int openDuplicate) {
+int FileOpen(
+        const char *filename,
+        const int runTemplate, 
+        const char *editAs,
+        const int openDuplicate
+        ) {
+
     if (filename == NULL) { 
         perror("FileOpen: unable to open file");
         return -1;
     }
     
+    if (!runTemplate) {
+        perror("Templates are not currently supported");
+    }
+    
+    if (!openDuplicate) {
+        perror("Fopen: Current implementation does not support \
+                duplicate handles to open file");
+    }
+    
+    if (strcmp(editAs, "Hex")) {
+        perror("FileOpen: Currently only byte mode/Hex is supported");
+    }
+    FILE *file;
+    
+    
+
 
 }
 
