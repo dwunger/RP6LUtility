@@ -6,22 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include "010editor.h"
 
-long int get_file_size(FILE *file) {
-    // Get current position in file
-    long int position = ftell(file);
-    if (position == -1) {
-        perror("Invalid position");
-        return -1;
-    }
-    // Jump to EOF
-    fseek(file, 0L, SEEK_END);
-    long int file_size = ftell(file);
-    
-    fseek(file, position, SEEK_SET);
+long int get_file_size(FILE *file); 
 
-    return file_size;
-}
 
 int main(int argc, char *argv[]) {
     char path[MAX_PATH];
@@ -49,8 +37,26 @@ int main(int argc, char *argv[]) {
     }
     
     
-
+    init_010_editor();
     
     return 0;
 }
+
+
+long int get_file_size(FILE *file) {
+    // Get current position in file
+    long int position = ftell(file);
+    if (position == -1) {
+        perror("Invalid position");
+        return -1;
+    }
+    // Jump to EOF
+    fseek(file, 0L, SEEK_END);
+    long int file_size = ftell(file);
+    
+    fseek(file, position, SEEK_SET);
+
+    return file_size;
+}
+
 
