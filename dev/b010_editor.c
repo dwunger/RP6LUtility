@@ -1,5 +1,6 @@
-#include "010editor.h"
+#include "b010_editor.h"
 #include <stdio.h>
+#include <string.h>
 
 void init_emulator() {
     printf("Emulator Initialized");
