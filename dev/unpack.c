@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include "010editor.h"
+#include "b010_editor.h"
 
 long int get_file_size(FILE *file); 
 
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     }
     
     
-    init_010_editor();
+    init_emulator();
     
     return 0;
 }
