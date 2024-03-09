@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void init_emulator() {
-    printf("Emulator Initialized");
-}
 
 /**
  * 010 Editor Manual
@@ -66,11 +63,96 @@ int FileOpen(
         perror("FileOpen: Currently only byte mode/Hex is supported");
     }
     FILE *file;
-    
-    
+}   
 
-
+void init_emulator() {
+    printf("Emulator Initialized");
 }
 
+void InsertBytes(int offset, int size, int value) {
+    printf("InsertBytes function called with parameters:\n");
+    printf("- offset: %d\n", offset);
+    printf("- size: %d\n", size);
+    printf("- value: %d\n", value);
+    // ...
+}
 
+int FindOpenFile(const char *path) {
+    printf("FindOpenFile function called with path: %s\n", path);
+    // ...
+    return -1;
+}
+
+void FileSelect(int index) {
+    printf("FileSelect function called with index: %d\n", index);
+    // ...
+}
+
+int FileOpen(const char *path, int readonly, const char *mode, int bigendian) {
+    printf("FileOpen function called with parameters:\n");
+    printf("- path: %s\n", path);
+    printf("- readonly: %d\n", readonly);
+    printf("- mode: %s\n", mode);
+    printf("- bigendian: %d\n", bigendian);
+    // ...
+    return 0;
+}
+
+const char *FileNameGetBase(const char *path) {
+    printf("FileNameGetBase function called with path: %s\n", path);
+    // ...
+    return "";
+}
+
+const char *FileNameGetPath(const char *path) {
+    printf("FileNameGetPath function called with path: %s\n", path);
+    // ...
+    return "";
+}
+
+const char *ReadString(int offset) {
+    printf("ReadString function called with offset: %d\n", offset);
+    // ...
+    return "";
+}
+
+void MakeDir(const char *path) {
+    printf("MakeDir function called with path: %s\n", path);
+    // ...
+}
+
+void FileSaveRange(const char *path, int offset, int size) {
+    printf("FileSaveRange function called with parameters:\n");
+    printf("- path: %s\n", path);
+    printf("- offset: %d\n", offset);
+    printf("- size: %d\n", size);
+    // ...
+}
+
+int FindOpenFileW(const char *path) {
+    printf("FindOpenFileW function called with path: %s\n", path);
+    // ...
+    return -1;
+}
+
+void WriteBytes(unsigned char *buffer, int offset, int size) {
+    printf("WriteBytes function called with parameters:\n");
+    printf("- offset: %d\n", offset);
+    printf("- size: %d\n", size);
+    // ...
+}
+
+const char *InputOpenFileName(const char *title, const char *filter, const char *default_ext) {
+    printf("InputOpenFileName function called with parameters:\n");
+    printf("- title: %s\n", title);
+    printf("- filter: %s\n", filter);
+    printf("- default_ext: %s\n", default_ext);
+    // ...
+    return "";
+}
+
+void RunTemplate(const char *template_name) {
+    printf("RunTemplate function called with template name: %s\n", template_name);
+    // ... 
+}
 
