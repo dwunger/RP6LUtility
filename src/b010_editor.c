@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 /**
  * 010 Editor Manual
  *
@@ -37,34 +36,6 @@
  * - Processes can be opened using `OpenProcessById` or
  *   `OpenProcessByName` functions.
  */
-
-int FileOpen(
-        const char *filename,
-        const int runTemplate, 
-        const char *editAs,
-        const int openDuplicate
-        ) {
-
-    if (filename == NULL) { 
-        perror("FileOpen: unable to open file");
-        return -1;
-    }
-    
-    if (!runTemplate) {
-        perror("Templates are not currently supported");
-    }
-    
-    if (!openDuplicate) {
-        perror("Fopen: Current implementation does not support \
-                duplicate handles to open file");
-    }
-    
-    if (strcmp(editAs, "Hex")) {
-        perror("FileOpen: Currently only byte mode/Hex is supported");
-    }
-    FILE *file;
-}   
-
 void init_emulator() {
     printf("Emulator Initialized");
 }
@@ -88,15 +59,38 @@ void FileSelect(int index) {
     // ...
 }
 
-int FileOpen(const char *path, int readonly, const char *mode, int bigendian) {
+int FileOpen(const char *filename, int runTemplate, const char *editAs, int openDuplicate) {
     printf("FileOpen function called with parameters:\n");
-    printf("- path: %s\n", path);
-    printf("- readonly: %d\n", readonly);
-    printf("- mode: %s\n", mode);
-    printf("- bigendian: %d\n", bigendian);
+    printf("- path: %s\n", filename);
+    printf("- readonly: %d\n", runTemplate);
+    printf("- mode: %s\n", editAs);
+    printf("- bigendian: %d\n", openDuplicate);
+ 
+    if (filename == NULL) { 
+        perror("FileOpen: unable to open file");
+        return -1;
+    }
+    
+    if (!runTemplate) {
+        perror("Templates are not currently supported");
+    }
+    
+    if (!openDuplicate) {
+        perror("Fopen: Current implementation does not support \
+                duplicate handles to open file");
+    }
+    
+    if (strcmp(editAs, "Hex")) {
+        perror("FileOpen: Currently only byte mode/Hex is supported");
+    }
+    FILE *file;
     // ...
     return 0;
 }
+
+int FileOpen( . . .) {
+}   
+
 
 const char *FileNameGetBase(const char *path) {
     printf("FileNameGetBase function called with path: %s\n", path);
