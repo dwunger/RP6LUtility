@@ -29,4 +29,15 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
 
 void RunTemplate(const char *template_name);
 
+// 010 editor's variants of GLIBC functions from String.h & stdio variants
+int Strcmp(const char *str1, const char *str2);
+
+const char *Strstr(const char *str, const char *substr);
+
+const char *SubStr(const char *str, int start, int len);
+
+int Strlen(const char *str);
+
+const char *SPrintf(const char *format, ...);
+
 #endif // EDITOR_H
