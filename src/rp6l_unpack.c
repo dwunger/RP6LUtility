@@ -63,8 +63,186 @@ unsigned int DDPF_NORMAL         = 0x80000000;
 char haystack[];
 char needle[];
 
-int contains( char haystack[], char needle[] )
+int contains( char haystack[], char needle[] );
+int isExcluded(char file[]);
+unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed); 
+int get_dxt_header(int format); 
+int get_bpp(int format);
+//required flags for dds
+unsigned int flags = 0, hasFOURCC = 0;
+void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth); 
+void OpenFileExist(char path[]);
+
+int main(int argc, char *argv[]) 
 {
+	char rpack[512];
+	strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
+
+	if ((strcmp(rpack, "") != 0)) {
+		puts("rpack file not selected.");
+		exit(1);
+	}
+	OpenFileExist(rpack);
+
+	RunTemplate("rp6l.bt");
+
+	int i,j;
+	string s,savepath;
+
+	//Set buffer for textures ~20MB
+	uchar buffer[20000000+80];
+	char rpack_name[] = FileNameGetBase(rpack);
+	char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
+	char rpack_path[] = FileNameGetPath(rpack);
+
+	uint64_t file_offset, file_size, filename_offset;
+
+	filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
+
+	string GetResourceName(int fileIndex) 
+	{
+		string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
+		return filename;
+	}
+
+	string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
+	{
+		string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
+		if (Part == 0)
+		{
+			savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
+		}
+
+		MakeDir(savepath);
+		if (IsTexture == 1) 
+		{
+			savepath += ResourceName;
+		} 
+		else 
+		{
+			savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
+		}
+		return savepath;
+	}
+
+	int IsTexture = 0;
+	int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
+	//header.files corresponds to total number of files in rpack
+	//
+	for (i = 0; i < header.files; i++) 
+	{
+		for (j = 0; j < filemap[i].partsCount; j++) 
+		{
+			OpenFileExist(rpack);
+			// Test GetResourceName for pattern defined in header
+			if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i))) 
+			{
+				continue;  // If not found, skip to next iteration of the loop.
+			}
+
+			//File Size
+			file_size = filepart[filemap[i].firstPart + j].size;
+			//File Offset
+			file_offset = filepart[filemap[i].firstPart + j].offset;
+			file_offset = file_offset << 4;
+			file_offset = file_offset + (section[filepart[filemap[i].firstPart + j].sectionIndex].offset << 4);
+			//Detect if compressed
+			if ((section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize == 0)) {
+				puts("Can not extract compressed files, extraction aborted");
+				exit(1);
+			}
+			//Extract
+			IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
+			savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+
+			if (IsTexture == 1) 
+			{
+				if (j == 0) 
+				{
+					savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+					FileSaveRange(savepath + ".header", file_offset, file_size);
+					headerSize = ReadUInt(file_offset + 8);
+					headerType = ReadUInt(file_offset + 64);
+					width = ReadUShort(file_offset + 64);
+					height = ReadUShort(file_offset + 66);
+					format = ReadUByte(file_offset + 70);
+					depth = ReadUByte(file_offset + 68);
+					mip_count = (ReadUByte(file_offset + 71) >> 2);
+					tex_type = (ReadUByte(file_offset + 71) & 0x03);    // 0 = 2d, 1 = cubemap, 2 = 3d
+				} 
+				else 
+				{
+					if (headerType != 0) 
+					{
+						savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+						FileSaveRange(savepath + ".dds", file_offset, file_size);
+						OpenFileExist(savepath + ".dds");
+						dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
+						FileSave();
+						FileClose();
+					}
+				}
+			} 
+			else 
+			{
+				FileSaveRange(savepath, file_offset, file_size);
+			}
+			FileSelect(FindOpenFileW(rpack_path + rpack_name));
+		}
+	}
+
+	//header.bin
+	FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
+
+	//section.bin
+	buffer[0] = header.sections;
+
+	for (i = 0; i < header.sections; i++) 
+	{
+		buffer[5*i + 1] = section[i].filetype;
+		buffer[5*i + 2] = section[i].type2;
+		buffer[5*i + 3] = section[i].type3;
+		buffer[5*i + 4] = section[i].type4;
+		buffer[5*i + 5] = section[i].unk;
+	}
+	unsigned int buffersize = header.sections * 5 + 1;
+	FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
+	FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
+	WriteBytes(buffer, 0, buffersize);
+	FileSave();
+	FileClose();
+	FileSelect(FindOpenFileW(rpack_path + rpack_name));
+
+	//file desc
+	for (i = 0; i < header.files; i++) 
+	{
+		// Test for pattern defined in header
+		if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i)))
+		{
+			continue;  // If not found, skip to next iteration of the loop.
+		}
+		buffer[0] = filemap[i].partsCount;
+		buffer[1] = filemap[i].filetype;
+		buffer[2] = filemap[i].unk2;
+		for (j = 0; j < filemap[i].partsCount; j++) 
+		{
+			buffer[3 + j * 2] = filepart[filemap[i].firstPart + j].sectionIndex;
+			buffer[4 + j * 2] = filepart[filemap[i].firstPart + j].unk1;
+		}
+		buffersize = 3 + filemap[i].partsCount * 2;
+		savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
+		FileSaveRange(savepath, 0, 0);
+		FileOpen(savepath, false, "Hex", false);
+		WriteBytes(buffer, 0, buffersize);
+		FileSave();
+		FileClose();
+		FileSelect(FindOpenFileW(rpack_path + rpack_name));
+	}
+
+	return 0;
+}
+
+int contains( char haystack[], char needle[] ) {
     if (Strstr(haystack, needle) != -1)
     {
         return 1;
@@ -112,6 +290,7 @@ int isExcluded(char file[]) {
     return 0;
 }
 
+
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
 {
 	if (isCompressed == 1) 
@@ -123,6 +302,109 @@ unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int 
 		unsigned int pitch = ( width * bpp + 7 ) / 8;
 	}
 	return pitch;
+}
+
+unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
+{
+	if (isCompressed == 1) 
+	{
+		unsigned int pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
+	} 
+	else 
+	{
+		unsigned int pitch = ( width * bpp + 7 ) / 8;
+	}
+	return pitch;
+}
+
+int get_dxt_header(int format) 
+{
+	switch (format) 
+	{
+		case 0:     //R8_UNORM
+			format = 61;
+			break;
+		case 1:     //R8_SNORM
+			format = 63;
+			break;
+		case 5:     //R8_UNORM 
+			format = 61;
+			break;
+		case 7:     //R16_UNORM
+			format = 56;
+			break;
+		case 8:     //R16_SNORM
+			format = 58;
+			break;
+		case 10:    //R16_SINT
+			format = 59;
+			break;
+		case 15:    //R8G8_UNORM
+			format = 49;
+			break;
+		case 16:    //R8G8_SNORM
+			format = 51;
+			break;
+		case 17:    //R8G8_UINT
+			format = 50;
+			break;
+		case 20:    //R16G16_UNORM
+			format = 35;
+			break;
+		case 21:    //R16G16_SNORM
+			format = 37;
+			break;
+		case 22:    //R16G16_UINT
+			format = 36;
+			break;
+		case 32:    //R8G8B8A8_UNORM 
+			format = 28;
+			break;
+		case 38:    //R8G8B8A8_UNORM
+			format = 28;
+			break;
+		case 39:    //R8G8B8A8_SNORM
+			format = 31;
+			break;
+		case 40:    //R8G8B8A8_UINT
+			format = 30;
+			break;
+		case 46:    //R16G16B16A16_FLOAT
+			format = 10;
+			break;
+		case 47:    //R16G16B16A16_UNORM
+			format = 11;
+			break;
+		case 48:    //R16G16B16A16_SNORM
+			format = 13;
+			break;
+		case 59:    //BC1_UNORM
+			format = 71;
+			break;
+		case 62:    //BC4_SNORM
+			format = 81;
+			break;
+		case 63:    //BC4_UNORM
+			format = 80;
+			break;
+		case 64:    //BC5_SNORM
+			format = 84;
+			break;
+		case 65:    //BC5_UNORM
+			format = 83;
+			break;
+		case 66:    //BC6H_UF16
+			format = 95;
+			break;
+		case 68:    //BC7_UNORM
+			format = 98;
+			break;
+		default:
+			puts("Unsupported DDS format detected.");
+			exit(1);	
+			break;
+	}	
+    return format;
 }
 
 int get_dxt_header(int format) 
@@ -275,8 +557,7 @@ int get_bpp(int format)
 	}
     return format;
 }
-//required flags for dds
-unsigned int flags = 0, hasFOURCC = 0;
+
 void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth) 
 {
     InsertBytes(0, 4 + 124, 0);
@@ -382,168 +663,4 @@ void OpenFileExist(char path[])
 	{
         FileOpen(path, false, "Hex", false);
     }
-}
-
-char rpack[512];
-strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
-
-if ((strcmp(rpack, "") != 0)) {
-	puts("rpack file not selected.");
-	exit(1);
-}
-OpenFileExist(rpack);
-
-RunTemplate("rp6l.bt");
-
-int i,j;
-string s,savepath;
-
-//Set buffer for textures ~20MB
-uchar buffer[20000000+80];
-char rpack_name[] = FileNameGetBase(rpack);
-char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
-char rpack_path[] = FileNameGetPath(rpack);
-
-uint64_t file_offset, file_size, filename_offset;
-
-filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
-
-string GetResourceName(int fileIndex) 
-{
-    string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
-    return filename;
-}
-
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
-{
-	string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
-	if (Part == 0)
-	{
-    	savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
-	}
-
-    MakeDir(savepath);
-    if (IsTexture == 1) 
-	{
-        savepath += ResourceName;
-    } 
-	else 
-	{
-        savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
-    }
-    return savepath;
-}
-
-int IsTexture = 0;
-int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
-//header.files corresponds to total number of files in rpack
-//
-for (i = 0; i < header.files; i++) 
-{
-    for (j = 0; j < filemap[i].partsCount; j++) 
-	{
-        OpenFileExist(rpack);
-        // Test GetResourceName for pattern defined in header
-        if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i))) 
-		{
-            continue;  // If not found, skip to next iteration of the loop.
-        }
-
-        //File Size
-        file_size = filepart[filemap[i].firstPart + j].size;
-        //File Offset
-        file_offset = filepart[filemap[i].firstPart + j].offset;
-        file_offset = file_offset << 4;
-        file_offset = file_offset + (section[filepart[filemap[i].firstPart + j].sectionIndex].offset << 4);
-        //Detect if compressed
-		if ((section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize == 0)) {
-			puts("Can not extract compressed files, extraction aborted");
-			exit(1);
-		}
-        //Extract
-        IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
-        savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-
-        if (IsTexture == 1) 
-		{
-            if (j == 0) 
-			{
-				savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-                FileSaveRange(savepath + ".header", file_offset, file_size);
-                headerSize = ReadUInt(file_offset + 8);
-                headerType = ReadUInt(file_offset + 64);
-                width = ReadUShort(file_offset + 64);
-                height = ReadUShort(file_offset + 66);
-                format = ReadUByte(file_offset + 70);
-                depth = ReadUByte(file_offset + 68);
-                mip_count = (ReadUByte(file_offset + 71) >> 2);
-                tex_type = (ReadUByte(file_offset + 71) & 0x03);    // 0 = 2d, 1 = cubemap, 2 = 3d
-            } 
-			else 
-			{
-                if (headerType != 0) 
-				{
-					savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-                    FileSaveRange(savepath + ".dds", file_offset, file_size);
-                    OpenFileExist(savepath + ".dds");
-                    dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
-                    FileSave();
-                    FileClose();
-                }
-            }
-        } 
-		else 
-		{
-            FileSaveRange(savepath, file_offset, file_size);
-        }
-        FileSelect(FindOpenFileW(rpack_path + rpack_name));
-    }
-}
-
-//header.bin
-FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
-
-//section.bin
-buffer[0] = header.sections;
-
-for (i = 0; i < header.sections; i++) 
-{
-    buffer[5*i + 1] = section[i].filetype;
-    buffer[5*i + 2] = section[i].type2;
-    buffer[5*i + 3] = section[i].type3;
-    buffer[5*i + 4] = section[i].type4;
-    buffer[5*i + 5] = section[i].unk;
-}
-unsigned int buffersize = header.sections * 5 + 1;
-FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
-FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
-WriteBytes(buffer, 0, buffersize);
-FileSave();
-FileClose();
-FileSelect(FindOpenFileW(rpack_path + rpack_name));
-
-//file desc
-for (i = 0; i < header.files; i++) 
-{
-    // Test for pattern defined in header
-    if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i)))
-	{
-        continue;  // If not found, skip to next iteration of the loop.
-    }
-    buffer[0] = filemap[i].partsCount;
-    buffer[1] = filemap[i].filetype;
-    buffer[2] = filemap[i].unk2;
-    for (j = 0; j < filemap[i].partsCount; j++) 
-	{
-        buffer[3 + j * 2] = filepart[filemap[i].firstPart + j].sectionIndex;
-        buffer[4 + j * 2] = filepart[filemap[i].firstPart + j].unk1;
-    }
-    buffersize = 3 + filemap[i].partsCount * 2;
-    savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
-    FileSaveRange(savepath, 0, 0);
-    FileOpen(savepath, false, "Hex", false);
-    WriteBytes(buffer, 0, buffersize);
-    FileSave();
-    FileClose();
-    FileSelect(FindOpenFileW(rpack_path + rpack_name));
 }
