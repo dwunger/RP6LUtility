@@ -14,18 +14,18 @@ struct excluded_types
     /*Comment out any member to disable filtering*/
     /*Example: will only unpack diffuse textures */
     
-    char dif[16] = "_dif"; //diffuse map
-    //char nrm[16] = "_nrm"; // Normal map
-    //char rgh[16] = "_rgh"; // Roughness map
-    //char clp[16] = "_clp"; // Clip map
-    //char msk[16] = "_msk"; // Mask map
-    //char spc[16] = "_spc"; // Specular map
-    //char trn[16] = "_trn"; // Transparency map
-    //char ocl[16] = "_ocl"; // Occlusion map
-    //char opc[16] = "_opc"; // Opacity map
-    //char dpt[16] = "_dpt"; // Depth map  ??
-    //char det[16] = "_det"; // Detail map ??
-    //char idx[16] = "_idx"; // Index map  ??
+    char dif[5] = "_dif"; //diffuse map
+    //char nrm[5] = "_nrm"; // Normal map
+    //char rgh[5] = "_rgh"; // Roughness map
+    //char clp[5] = "_clp"; // Clip map
+    //char msk[5] = "_msk"; // Mask map
+    //char spc[5] = "_spc"; // Specular map
+    //char trn[5] = "_trn"; // Transparency map
+    //char ocl[5] = "_ocl"; // Occlusion map
+    //char opc[5] = "_opc"; // Opacity map
+    //char dpt[5] = "_dpt"; // Depth map  ??
+    //char det[5] = "_det"; // Detail map ??
+    //char idx[5] = "_idx"; // Index map  ??
 } textures;
 
 //dds header writer
