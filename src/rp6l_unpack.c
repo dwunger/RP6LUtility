@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "b010_editor.h"
 
