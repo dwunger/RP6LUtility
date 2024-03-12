@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "b010_editor.h"
-
+#define MAX_PATH 260 // May include windows.h if I/O overhead is an issue
 
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
@@ -91,8 +91,11 @@ int main(int argc, char *argv[])
 	string s,savepath;
 
 	//Set buffer for textures ~20MB
-	uchar buffer[20000000+80];
-	char rpack_name[] = FileNameGetBase(rpack);
+	unsigned char buffer[20000000+80];
+
+	char rpack_name[512];
+
+	FileNameGetBase(rpack);
 	char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
 	char rpack_path[] = FileNameGetPath(rpack);
 
