@@ -1,40 +1,44 @@
-# Compiler settings
 CC=gcc
-# Header files in current directory
-CFLAGS=-I.
+CFLAGS=-I./src
 
-# List of object files to be created from source files
-OBJ=.src/unpack.o b010_editor.o
+# Directories
+BUILD_DIR=./build
+TESTS_DIR=./tests
+
+# Source files
+SRC_DIR=./src
+SRCS=$(wildcard $(SRC_DIR)/*.c)
+
+# Object files
+OBJS=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
+
+# Executable
+EXEC=$(BUILD_DIR)/unpack
+
+# Default target
+all: $(BUILD_DIR) $(EXEC)
+
+# Create build directory if it doesn't exist
+$(BUILD_DIR):
+	mkdir -p $@
 
 # Rule for creating object files from C source files
-# For each .c file, compile it into an .o file
-%.o: %.c
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
-	#  gcc -c -o .src/unpack.o unpack.c -I.
-	#  -c : compile without linking
-	#  -o : output file name
-	#  <  : input file name
-	#  CFLAGS : additional flags
 
 # Link objects into single executable
-unpack: $(OBJ)
+$(EXEC): $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
-	# gcc -o .src/unpack unpack.o editor_emulation.o -I.
 
-test:
-OBJ=test.o b010_editor.o 
-# Rule for creating object files from C source files
-# For each .c file, compile it into an .o file
-%.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-	#  gcc -c -o test.o test.c -I.
-	#  -c : compile without linking
-	#  -o : output file name
-	#  <  : input file name
-	#  CFLAGS : additional flags
-
-test: test.o b010_editor.o
-		$(CC) -o $@ $^ $(CFLAGS)
-
+# Clean build artifacts
 clean:
-	rm -f *.o .src/unpack
+	rm -rf $(BUILD_DIR)
+
+# Test target
+test: $(BUILD_DIR) $(BUILD_DIR)/test
+
+$(BUILD_DIR)/test: $(TESTS_DIR)/test.c $(BUILD_DIR)/b010_editor.o | $(BUILD_DIR)
+	$(CC) -o $@ $^ $(CFLAGS)
+	$@
+
+.PHONY: all clean test
