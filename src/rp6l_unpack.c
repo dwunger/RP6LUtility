@@ -1,4 +1,10 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <inttypes.h>
+
 #include "b010_editor.h"
+
 
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
@@ -8,7 +14,7 @@ struct excluded_types
     /*Comment out any member to disable filtering*/
     /*Example: will only unpack diffuse textures */
     
-    //char dif[16] = "_dif"; //diffuse map
+    char dif[16] = "_dif"; //diffuse map
     //char nrm[16] = "_nrm"; // Normal map
     //char rgh[16] = "_rgh"; // Roughness map
     //char clp[16] = "_clp"; // Clip map
@@ -202,7 +208,8 @@ int get_dxt_header(int format)
 			format = 98;
 			break;
 		default:
-			Assert(0, "Unsupported DDS format detected.");
+			puts("Unsupported DDS format detected.");
+			exit(1);	
 			break;
 	}	
     return format;
@@ -262,7 +269,8 @@ int get_bpp(int format)
 			hasFOURCC = 2;
 			break;
 		default:
-			Assert(0, "Unsupported texture format detected.");
+			puts("Unsupported texture format detected.");
+			exit(1);		
 			break;
 	}
     return format;
@@ -376,12 +384,17 @@ void OpenFileExist(char path[])
     }
 }
 
-char rpack[] = InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", "");
-Assert((Strcmp(rpack, "") != 0), "rpack file not selected.");
+char rpack[512];
+strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
 
+if ((strcmp(rpack, "") != 0)) {
+	puts("rpack file not selected.");
+	exit(1);
+}
 OpenFileExist(rpack);
 
 RunTemplate("rp6l.bt");
+
 int i,j;
 string s,savepath;
 
@@ -391,7 +404,8 @@ char rpack_name[] = FileNameGetBase(rpack);
 char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
 char rpack_path[] = FileNameGetPath(rpack);
 
-uint64 file_offset,file_size,filename_offset;
+uint64_t file_offset, file_size, filename_offset;
+
 filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
 
 string GetResourceName(int fileIndex) 
@@ -442,7 +456,10 @@ for (i = 0; i < header.files; i++)
         file_offset = file_offset << 4;
         file_offset = file_offset + (section[filepart[filemap[i].firstPart + j].sectionIndex].offset << 4);
         //Detect if compressed
-        Assert((section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize == 0), "Can not extract compressed files, extraction aborted");
+		if ((section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize == 0)) {
+			puts("Can not extract compressed files, extraction aborted");
+			exit(1);
+		}
         //Extract
         IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
         savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
@@ -497,7 +514,7 @@ for (i = 0; i < header.sections; i++)
     buffer[5*i + 4] = section[i].type4;
     buffer[5*i + 5] = section[i].unk;
 }
-uint buffersize = header.sections * 5 + 1;
+unsigned int buffersize = header.sections * 5 + 1;
 FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
 FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
 WriteBytes(buffer, 0, buffersize);
@@ -518,8 +535,8 @@ for (i = 0; i < header.files; i++)
     buffer[2] = filemap[i].unk2;
     for (j = 0; j < filemap[i].partsCount; j++) 
 	{
-        buffer[3 + j * 2] =filepart[filemap[i].firstPart + j].sectionIndex;
-        buffer[4 + j * 2] =filepart[filemap[i].firstPart + j].unk1;
+        buffer[3 + j * 2] = filepart[filemap[i].firstPart + j].sectionIndex;
+        buffer[4 + j * 2] = filepart[filemap[i].firstPart + j].unk1;
     }
     buffersize = 3 + filemap[i].partsCount * 2;
     savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
