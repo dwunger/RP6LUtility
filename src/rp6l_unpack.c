@@ -3,7 +3,7 @@
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
 
-local struct excluded_types 
+struct excluded_types 
 {
     /*Comment out any member to disable filtering*/
     /*Example: will only unpack diffuse textures */
@@ -30,29 +30,29 @@ int isDXT10 = 1;
 int bpp = 0;
 int isCompressed = 0;
 
-uint pitch = 0;
+unsigned int pitch = 0;
 
-uint DDSD_CAPS           = 0x00000001;
-uint DDSD_HEIGHT         = 0x00000002;
-uint DDSD_WIDTH          = 0x00000004;
-uint DDSD_PITCH          = 0x00000008;
-uint DDSD_PIXELFORMAT    = 0x00001000;
-uint DDSD_MIPMAPCOUNT    = 0x00020000;
-uint DDSD_LINEARSIZE     = 0x00080000;
-uint DDSD_DEPTH          = 0x00800000;
+unsigned int DDSD_CAPS           = 0x00000001;
+unsigned int DDSD_HEIGHT         = 0x00000002;
+unsigned int DDSD_WIDTH          = 0x00000004;
+unsigned int DDSD_PITCH          = 0x00000008;
+unsigned int DDSD_PIXELFORMAT    = 0x00001000;
+unsigned int DDSD_MIPMAPCOUNT    = 0x00020000;
+unsigned int DDSD_LINEARSIZE     = 0x00080000;
+unsigned int DDSD_DEPTH          = 0x00800000;
 
-uint DDSCAPS_COMPLEX     = 0x00000008;
-uint DDSCAPS_TEXTURE     = 0x00001000;
-uint DDSCAPS_MIPMAP      = 0x00400000;
-uint DDSCAPS2_VOLUME     = 0x00200000;
-uint DDSCAPS2_CUBEMAP    = 0x00000200;
-uint DDSCAPS2_CUBEMAP_ALL_FACES = 0x0000FC00;
+unsigned int DDSCAPS_COMPLEX     = 0x00000008;
+unsigned int DDSCAPS_TEXTURE     = 0x00001000;
+unsigned int DDSCAPS_MIPMAP      = 0x00400000;
+unsigned int DDSCAPS2_VOLUME     = 0x00200000;
+unsigned int DDSCAPS2_CUBEMAP    = 0x00000200;
+unsigned int DDSCAPS2_CUBEMAP_ALL_FACES = 0x0000FC00;
 
-uint DDPF_ALPHAPIXELS    = 0x00000001;
-uint DDPF_ALPHA          = 0x00000002;
-uint DDPF_FOURCC         = 0x00000004;
-uint DDPF_RGB            = 0x00000040;
-uint DDPF_NORMAL         = 0x80000000;
+unsigned int DDPF_ALPHAPIXELS    = 0x00000001;
+unsigned int DDPF_ALPHA          = 0x00000002;
+unsigned int DDPF_FOURCC         = 0x00000004;
+unsigned int DDPF_RGB            = 0x00000040;
+unsigned int DDPF_NORMAL         = 0x80000000;
 
 char haystack[];
 char needle[];
@@ -106,15 +106,15 @@ int isExcluded(char file[]) {
     return 0;
 }
 
-uint computePitch(uint width, uint height, int bpp, int isCompressed) 
+unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
 {
 	if (isCompressed == 1) 
 	{
-		uint pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
+		unsigned int pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
 	} 
 	else 
 	{
-		uint pitch = ( width * bpp + 7 ) / 8;
+		unsigned int pitch = ( width * bpp + 7 ) / 8;
 	}
 	return pitch;
 }
@@ -268,8 +268,8 @@ int get_bpp(int format)
     return format;
 }
 //required flags for dds
-uint flags = 0, hasFOURCC = 0;
-void dds_Generate(uint width, uint height, uint mip_count, uint format, uint tex_type, uint depth) 
+unsigned int flags = 0, hasFOURCC = 0;
+void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth) 
 {
     InsertBytes(0, 4 + 124, 0);
 	isDXT10 = 0;
