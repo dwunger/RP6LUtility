@@ -73,6 +73,8 @@ int get_bpp(int format);
 unsigned int flags = 0, hasFOURCC = 0;
 void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth); 
 void OpenFileExist(char path[]);
+string GetResourceName(int fileIndex); 
+string GetResourceSavePath(string ResourceName, int Part, int IsTexture); 
 
 int main(int argc, char *argv[]) 
 {
@@ -103,31 +105,6 @@ int main(int argc, char *argv[])
 
 	filename_offset = 36 + 20 * header.sections + 16 * header.parts + header.files * (12 + 4);
 
-	string GetResourceName(int fileIndex) 
-	{
-		string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
-		return filename;
-	}
-
-	string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
-	{
-		string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
-		if (Part == 0)
-		{
-			savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
-		}
-
-		MakeDir(savepath);
-		if (IsTexture == 1) 
-		{
-			savepath += ResourceName;
-		} 
-		else 
-		{
-			savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
-		}
-		return savepath;
-	}
 
 	int IsTexture = 0;
 	int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
@@ -668,3 +645,30 @@ void OpenFileExist(char path[])
         FileOpen(path, false, "Hex", false);
     }
 }
+
+string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
+{
+	string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
+	if (Part == 0)
+	{
+		savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
+	}
+
+	MakeDir(savepath);
+	if (IsTexture == 1) 
+	{
+		savepath += ResourceName;
+	} 
+	else 
+	{
+		savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
+	}
+	return savepath;
+}
+
+string GetResourceName(int fileIndex) 
+{
+	string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
+	return filename;
+}
+
