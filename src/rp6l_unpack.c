@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	RunTemplate("rp6l.bt");
 
 	int i,j;
-	string s,savepath;
+	string s,savepath, formatted_savepath;
 
 	//Set buffer for textures ~20MB
 	unsigned char buffer[20000000+80];
@@ -132,14 +132,20 @@ int main(int argc, char *argv[])
 			}
 			//Extract
 			IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
-			savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
 
+			//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+			strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture));
 			if (IsTexture == 1) 
 			{
 				if (j == 0) 
 				{
-					savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-					FileSaveRange(savepath + ".header", file_offset, file_size);
+					//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+					strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture));
+					sprintf(formatted_savepath, "%s.header", savepath);
+
+					//FileSaveRange(savepath + ".header", file_offset, file_size);
+					FileSaveRange(formatted_savepath, file_offset, file_size);
+					
 					headerSize = ReadUInt(file_offset + 8);
 					headerType = ReadUInt(file_offset + 64);
 					width = ReadUShort(file_offset + 64);
@@ -153,7 +159,9 @@ int main(int argc, char *argv[])
 				{
 					if (headerType != 0) 
 					{
-						savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+						//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
+						strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture))	
+
 						FileSaveRange(savepath + ".dds", file_offset, file_size);
 						OpenFileExist(savepath + ".dds");
 						dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
