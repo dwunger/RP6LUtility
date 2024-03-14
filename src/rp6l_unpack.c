@@ -10,24 +10,22 @@
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
 
-struct excluded_types 
-{
-    /*Comment out any member to disable filtering*/
-    /*Example: will only unpack diffuse textures */
-    
-    char dif[5] = "_dif"; //diffuse map
-    //char nrm[5] = "_nrm"; // Normal map
-    //char rgh[5] = "_rgh"; // Roughness map
-    //char clp[5] = "_clp"; // Clip map
-    //char msk[5] = "_msk"; // Mask map
-    //char spc[5] = "_spc"; // Specular map
-    //char trn[5] = "_trn"; // Transparency map
-    //char ocl[5] = "_ocl"; // Occlusion map
-    //char opc[5] = "_opc"; // Opacity map
-    //char dpt[5] = "_dpt"; // Depth map  ??
-    //char det[5] = "_det"; // Detail map ??
-    //char idx[5] = "_idx"; // Index map  ??
-} textures;
+/*Comment out any line to enable extraction*/
+/*Example: will extract all excluding diffuse textures */
+
+dif_mask = "_dif"; //diffuse map
+//nrm_mask = "_nrm"; // Normal map
+//rgh_mask = "_rgh"; // Roughness map
+//clp_mask = "_clp"; // Clip map
+//msk_mask = "_msk"; // Mask map
+//spc_mask = "_spc"; // Specular map
+//trn_mask = "_trn"; // Transparency map
+//ocl_mask = "_ocl"; // Occlusion map
+//opc_mask = "_opc"; // Opacity map
+//dpt_mask = "_dpt"; // Depth map ??
+//det_mask = "_det"; // Detail map ??
+//idx_mask = "_idx"; // Index map ??
+
 
 //dds header writer
 int isDXT10 = 1;
@@ -65,7 +63,7 @@ char haystack[];
 char needle[];
 
 int contains( char haystack[], char needle[] );
-int isExcluded(char file[]);
+int isExcluded(const char *file);
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed); 
 int get_dxt_header(int format); 
 int get_bpp(int format);
@@ -231,46 +229,45 @@ int contains( char haystack[], char needle[] ) {
     return 0;
 }
 
-int isExcluded(char file[]) {
-    if (exists(textures.dif) && contains(file, textures.dif)) {
-        return 1;
+int isExcluded(const char* file) {
+    if (dif_mask != NULL && strstr(file, dif_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.nrm) && contains(file, textures.nrm)) {
-        return 1;
+    if (nrm_mask != NULL && strstr(file, nrm_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.rgh) && contains(file, textures.rgh)) {
-        return 1;
+    if (rgh_mask != NULL && strstr(file, rgh_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.clp) && contains(file, textures.clp)) {
-        return 1;
+    if (clp_mask != NULL && strstr(file, clp_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.msk) && contains(file, textures.msk)) {
-        return 1;
+    if (msk_mask != NULL && strstr(file, msk_mask) != NULL) {
+		return 1;	
     }
-    if (exists(textures.spc) && contains(file, textures.spc)) {
-        return 1;
+    if (spc_mask != NULL && strstr(file, spc_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.trn) && contains(file, textures.trn)) {
-        return 1;
+    if (trn_mask != NULL && strstr(file, trn_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.ocl) && contains(file, textures.ocl)) {
-        return 1;
+	if (ocl_mask != NULL && strstr(file, ocl_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.opc) && contains(file, textures.opc)) {
-        return 1;
+    if (opc_mask != NULL && strstr(file, opc_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.dpt) && contains(file, textures.dpt)) {
-        return 1;
+    if (dpt_mask != NULL && strstr(file, dpt_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.det) && contains(file, textures.det)) {
-        return 1;
+    if (det_mask != NULL && strstr(file, det_mask) != NULL) {
+		return 1;
     }
-    if (exists(textures.idx) && contains(file, textures.idx)) {
-        return 1;
+    if (idx_mask != NULL && strstr(file, idx_mask) != NULL) {
+		return 1;
     }
     return 0;
 }
-
 
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
 {
