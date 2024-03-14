@@ -40,4 +40,19 @@ int Strlen(const char *str);
 
 const char *SPrintf(const char *format, ...);
 
+// Null initialized to remove clutter from main `script`
+// May move this responsibility to argument vector in future
+const char* dif_mask = NULL; // Diffuse map
+const char* nrm_mask = NULL; // Normal map
+const char* rgh_mask = NULL; // Roughness map
+const char* clp_mask = NULL; // Clip map
+const char* msk_mask = NULL; // Mask map
+const char* spc_mask = NULL; // Specular map
+const char* trn_mask = NULL; // Transparency map
+const char* ocl_mask = NULL; // Occlusion map
+const char* opc_mask = NULL; // Opacity map
+const char* dpt_mask = NULL; // Depth map ??
+const char* det_mask = NULL; // Detail map ??
+const char* idx_mask = NULL; // Index map ??
+
 #endif // EDITOR_H
