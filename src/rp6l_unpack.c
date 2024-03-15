@@ -6,7 +6,7 @@
 
 #include "b010_editor.h"
 #define MAX_PATH 260 // May include windows.h if I/O overhead is an issue
-
+#define MAX_FMT_BUFFER 2048 
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
 
@@ -62,6 +62,7 @@ unsigned int DDPF_NORMAL         = 0x80000000;
 char haystack[];
 char needle[];
 
+char* fmt(const char *format, ...);
 int contains( char haystack[], char needle[] );
 int isExcluded(const char *file);
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed); 
@@ -71,8 +72,9 @@ int get_bpp(int format);
 unsigned int flags = 0, hasFOURCC = 0;
 void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth); 
 void OpenFileExist(char path[]);
+
 string GetResourceName(int fileIndex); 
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture); 
+string GetResourceSavePath(string ResourceName, int Part, int IsTexture, char *rpack_path, char *rpack_basename); 
 
 int main(int argc, char *argv[]) 
 {
@@ -88,7 +90,7 @@ int main(int argc, char *argv[])
 	RunTemplate("rp6l.bt");
 
 	int i,j;
-	string s,savepath, formatted_savepath;
+	string s, savepath, formatted_savepath;
 
 	//Set buffer for textures ~20MB
 	unsigned char buffer[20000000+80];
@@ -134,13 +136,13 @@ int main(int argc, char *argv[])
 			IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
 
 			//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-			strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture));
+			strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
 			if (IsTexture == 1) 
 			{
 				if (j == 0) 
 				{
 					//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-					strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture));
+					strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
 					sprintf(formatted_savepath, "%s.header", savepath);
 
 					//FileSaveRange(savepath + ".header", file_offset, file_size);
@@ -160,10 +162,15 @@ int main(int argc, char *argv[])
 					if (headerType != 0) 
 					{
 						//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-						strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture))	
+						strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
+						sprintf(formatted_savepath, "%s.dds", savepath);
+						
+						//FileSaveRange(savepath + ".dds", file_offset, file_size);
+						FileSaveRange(formatted_savepath, file_offset, file_size);
+						
+						//OpenFileExist(savepath + ".dds");
+						OpenFileExist(formatted_savepath);
 
-						FileSaveRange(savepath + ".dds", file_offset, file_size);
-						OpenFileExist(savepath + ".dds");
 						dds_Generate( width,  height,  mip_count,  format,  tex_type,  depth);
 						FileSave();
 						FileClose();
@@ -174,13 +181,16 @@ int main(int argc, char *argv[])
 			{
 				FileSaveRange(savepath, file_offset, file_size);
 			}
-			FileSelect(FindOpenFileW(rpack_path + rpack_name));
+
+			//FileSelect(FindOpenFileW(rpack_path + rpack_name));
+			FileSelect(FindOpenFileW(fmt("%s%s", rpack_path, rpack_name)));
 		}
 	}
 
 	//header.bin
-	FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
-
+	//FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
+	FileSaveRange(fmt("%s%s%s", rpack_path, rpack_basename, "_unpack\\meta\\header.bin"), 0, 36);
+	
 	//section.bin
 	buffer[0] = header.sections;
 
@@ -193,12 +203,15 @@ int main(int argc, char *argv[])
 		buffer[5*i + 5] = section[i].unk;
 	}
 	unsigned int buffersize = header.sections * 5 + 1;
-	FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
-	FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
+	//FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
+	FileSaveRange(fmt("%s%s%s", rpack_path, rpack_basename, "_unpack\\meta\\section.bin"), 0, 0);
+	//FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
+	FileOpen(fmt("%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\section.bin"), false, "Hex", false);
 	WriteBytes(buffer, 0, buffersize);
 	FileSave();
 	FileClose();
-	FileSelect(FindOpenFileW(rpack_path + rpack_name));
+	//FileSelect(FindOpenFileW(rpack_path + rpack_name));
+	FileSelect(FindOpenFileW(fmt("%s%s", rpack_path, rpack_name)));
 
 	//file desc
 	for (i = 0; i < header.files; i++) 
@@ -217,13 +230,17 @@ int main(int argc, char *argv[])
 			buffer[4 + j * 2] = filepart[filemap[i].firstPart + j].unk1;
 		}
 		buffersize = 3 + filemap[i].partsCount * 2;
-		savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
+
+		//savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
+		strcpy(savepath, fmt("%s%s%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\" , GetResourceName(i) , ".desc"));
+		
 		FileSaveRange(savepath, 0, 0);
 		FileOpen(savepath, false, "Hex", false);
 		WriteBytes(buffer, 0, buffersize);
 		FileSave();
 		FileClose();
-		FileSelect(FindOpenFileW(rpack_path + rpack_name));
+		//FileSelect(FindOpenFileW(rpack_path + rpack_name));
+		FileSelect(FindOpenFileW(fmt("%s%s", rpack_path , rpack_name)));
 	}
 
 	return 0;
@@ -651,12 +668,14 @@ void OpenFileExist(char path[])
     }
 }
 
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture) 
+string GetResourceSavePath(string ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename) 
 {
-	string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
+	//string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
+	sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\textures\\");
 	if (Part == 0)
 	{
-		savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
+		//savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
+		sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\");
 	}
 
 	MakeDir(savepath);
@@ -677,3 +696,18 @@ string GetResourceName(int fileIndex)
 	return filename;
 }
 
+char* fmt(const char *format, ...) {
+    static char buffer[MAX_FMT_BUFFER];
+    va_list args;
+    va_start(args, format);
+
+    int written = vsnprintf(buffer, MAX_FMT_BUFFER, format, args);
+    if (written < 0 || written >= MAX_FMT_BUFFER) {
+        // Handle error: formatted string exceeds buffer size or other vsnprintf error
+        fprintf(stderr, "Formatting error or buffer overflow detected\n");
+        exit(EXIT_FAILURE); // or handle more gracefully as needed
+    }
+
+    va_end(args);
+    return buffer;
+}
