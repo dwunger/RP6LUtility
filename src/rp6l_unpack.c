@@ -73,8 +73,8 @@ unsigned int flags = 0, hasFOURCC = 0;
 void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth); 
 void OpenFileExist(char path[]);
 
-string GetResourceName(int fileIndex); 
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture, char *rpack_path, char *rpack_basename); 
+char *GetResourceName(int fileIndex, struct fname_idx[], int filename_offset);
+char *GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char *rpack_path, char *rpack_basename, char savepath[]); 
 
 int main(int argc, char *argv[]) 
 {
@@ -90,7 +90,9 @@ int main(int argc, char *argv[])
 	RunTemplate("rp6l.bt");
 
 	int i,j;
-	string s, savepath, formatted_savepath;
+	char s[MAX_PATH];
+	char savepath[MAX_PATH];
+	char formatted_savepath[MAX_PATH];
 
 	//Set buffer for textures ~20MB
 	unsigned char buffer[20000000+80];
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
 		{
 			OpenFileExist(rpack);
 			// Test GetResourceName for pattern defined in header
-			if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i))) 
+			if (Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == -1 || isExcluded(GetResourceName(i, fname_idx, filename_offset))) 
 			{
 				continue;  // If not found, skip to next iteration of the loop.
 			}
@@ -136,13 +138,13 @@ int main(int argc, char *argv[])
 			IsTexture = (filemap[i].filetype == 32) ? 1 : 0;
 
 			//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-			strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
+			strcpy(savepath, GetResourceSavePath(GetResourceName(i, fname_idx, filename_offset), j, IsTexture, rpack_path, rpack_basename, savepath));
 			if (IsTexture == 1) 
 			{
 				if (j == 0) 
 				{
 					//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-					strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
+					strcpy(savepath, GetResourceSavePath(GetResourceName(i, fname_idx, filename_offset), j, IsTexture, rpack_path, rpack_basename, savepath));
 					sprintf(formatted_savepath, "%s.header", savepath);
 
 					//FileSaveRange(savepath + ".header", file_offset, file_size);
@@ -162,7 +164,7 @@ int main(int argc, char *argv[])
 					if (headerType != 0) 
 					{
 						//savepath = GetResourceSavePath(GetResourceName(i), j, IsTexture);
-						strcpy(savepath, GetResourceSavePath(GetResourceName(i), j, IsTexture, rpack_path, rpack_basename));
+						strcpy(savepath, GetResourceSavePath(GetResourceName(i, fname_idx, filename_offset), j, IsTexture, rpack_path, rpack_basename, savepath));
 						sprintf(formatted_savepath, "%s.dds", savepath);
 						
 						//FileSaveRange(savepath + ".dds", file_offset, file_size);
@@ -217,7 +219,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < header.files; i++) 
 	{
 		// Test for pattern defined in header
-		if (Strstr(GetResourceName(i), texture_pattern) == -1 || isExcluded(GetResourceName(i)))
+		if (Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == -1 || isExcluded(GetResourceName(i, fname_idx, filename_offset)))
 		{
 			continue;  // If not found, skip to next iteration of the loop.
 		}
@@ -232,7 +234,7 @@ int main(int argc, char *argv[])
 		buffersize = 3 + filemap[i].partsCount * 2;
 
 		//savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
-		strcpy(savepath, fmt("%s%s%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\" , GetResourceName(i) , ".desc"));
+		strcpy(savepath, fmt("%s%s%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\" , GetResourceName(i, fname_idx, filename_offset) , ".desc"));
 		
 		FileSaveRange(savepath, 0, 0);
 		FileOpen(savepath, false, "Hex", false);
@@ -668,7 +670,7 @@ void OpenFileExist(char path[])
     }
 }
 
-string GetResourceSavePath(string ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename) 
+string GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename, char savepath[]) 
 {
 	//string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
 	sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\textures\\");
@@ -681,18 +683,33 @@ string GetResourceSavePath(string ResourceName, int Part, int IsTexture, char* r
 	MakeDir(savepath);
 	if (IsTexture == 1) 
 	{
-		savepath += ResourceName;
+		//savepath += ResourceName;
+        strcat(savepath, ResourceName);
 	} 
 	else 
 	{
-		savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
+		//savepath += SPrintf( s, "%d", Part) + "_" + ResourceName;
+        char partStr[16];
+        sprintf(partStr, "%d", Part);
+        strcat(savepath, fmt("%s_%s", partStr, ResourceName));
 	}
 	return savepath;
 }
 
-string GetResourceName(int fileIndex) 
+char *GetResourceName(int fileIndex, struct fname_idx[], int filename_offset) 
 {
-	string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
+	static char filename[MAX_PATH];
+	static int cached_index = -1;
+
+	if (fileIndex == cached_index) {
+		return filename;
+	} else {
+		cached_index = fileIndex;
+	}
+	//may need to create type names for each of the structs. For now they are left unnamed 
+	//to avoid adding unnecessary clutter to the namespace
+	//string filename = ReadString(fname_idx[fileIndex].offset + filename_offset);
+	sprintf(filename, "%s", ReadString(fname_idx[fileIndex].offset + filename_offset));
 	return filename;
 }
 
