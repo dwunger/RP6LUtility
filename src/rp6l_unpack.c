@@ -3,12 +3,27 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#inlcude <stddef.h>
 
 #include "b010_editor.h"
 #define MAX_PATH 260 // May include windows.h if I/O overhead is an issue
 #define MAX_FMT_BUFFER 2048 
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
+
+const char* dif_mask = NULL; // Diffuse map
+const char* nrm_mask = NULL; // Normal map
+const char* rgh_mask = NULL; // Roughness map
+const char* clp_mask = NULL; // Clip map
+const char* msk_mask = NULL; // Mask map
+const char* spc_mask = NULL; // Specular map
+const char* trn_mask = NULL; // Transparency map
+const char* ocl_mask = NULL; // Occlusion map
+const char* opc_mask = NULL; // Opacity map
+const char* dpt_mask = NULL; // Depth map ??
+const char* det_mask = NULL; // Detail map ??
+const char* idx_mask = NULL; // Index map ??
+
 
 /*Comment out any line to enable extraction*/
 /*Example: will extract all excluding diffuse textures */
@@ -307,109 +322,6 @@ unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int 
 		unsigned int pitch = ( width * bpp + 7 ) / 8;
 	}
 	return pitch;
-}
-
-unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
-{
-	if (isCompressed == 1) 
-	{
-		unsigned int pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
-	} 
-	else 
-	{
-		unsigned int pitch = ( width * bpp + 7 ) / 8;
-	}
-	return pitch;
-}
-
-int get_dxt_header(int format) 
-{
-	switch (format) 
-	{
-		case 0:     //R8_UNORM
-			format = 61;
-			break;
-		case 1:     //R8_SNORM
-			format = 63;
-			break;
-		case 5:     //R8_UNORM 
-			format = 61;
-			break;
-		case 7:     //R16_UNORM
-			format = 56;
-			break;
-		case 8:     //R16_SNORM
-			format = 58;
-			break;
-		case 10:    //R16_SINT
-			format = 59;
-			break;
-		case 15:    //R8G8_UNORM
-			format = 49;
-			break;
-		case 16:    //R8G8_SNORM
-			format = 51;
-			break;
-		case 17:    //R8G8_UINT
-			format = 50;
-			break;
-		case 20:    //R16G16_UNORM
-			format = 35;
-			break;
-		case 21:    //R16G16_SNORM
-			format = 37;
-			break;
-		case 22:    //R16G16_UINT
-			format = 36;
-			break;
-		case 32:    //R8G8B8A8_UNORM 
-			format = 28;
-			break;
-		case 38:    //R8G8B8A8_UNORM
-			format = 28;
-			break;
-		case 39:    //R8G8B8A8_SNORM
-			format = 31;
-			break;
-		case 40:    //R8G8B8A8_UINT
-			format = 30;
-			break;
-		case 46:    //R16G16B16A16_FLOAT
-			format = 10;
-			break;
-		case 47:    //R16G16B16A16_UNORM
-			format = 11;
-			break;
-		case 48:    //R16G16B16A16_SNORM
-			format = 13;
-			break;
-		case 59:    //BC1_UNORM
-			format = 71;
-			break;
-		case 62:    //BC4_SNORM
-			format = 81;
-			break;
-		case 63:    //BC4_UNORM
-			format = 80;
-			break;
-		case 64:    //BC5_SNORM
-			format = 84;
-			break;
-		case 65:    //BC5_UNORM
-			format = 83;
-			break;
-		case 66:    //BC6H_UF16
-			format = 95;
-			break;
-		case 68:    //BC7_UNORM
-			format = 98;
-			break;
-		default:
-			puts("Unsupported DDS format detected.");
-			exit(1);	
-			break;
-	}	
-    return format;
 }
 
 int get_dxt_header(int format) 
