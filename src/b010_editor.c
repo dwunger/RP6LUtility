@@ -139,11 +139,17 @@ const char *SubStr(const char *str, int start, int len) {
     return "";
 }
 
-int Strlen(const char *str) {
-    printf("Strlen function called with parameter:\n");
-    printf("- str: %s\n", str);
-    // Add any necessary logic or return a default value
-    return 0;
+size_t Strlen(const char *str) {
+
+    if (!str) { perror("Strlen\n"); }
+
+    char *temp_ptr = str;
+
+    while (*temp_ptr != '\0') {
+        temp_ptr++;
+    }
+
+    return (size_t)(temp_ptr - str);
 }
 
 const char *SPrintf(const char *format, ...) {
