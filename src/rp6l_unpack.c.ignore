@@ -45,6 +45,67 @@ dif_mask = "_dif"; //diffuse map
 //dpt_mask = "_dpt"; // Depth map ??
 //det_mask = "_det"; // Detail map ??
 //idx_mask = "_idx"; // Index map ??
+*/
+
+char *exclusion_list[] = {"_dif","_nrm","_rgh","_clp","_msk","_spc","_trn","_ocl","_opc","_dpt","_det","_idx",NULL};
+
+struct Header {
+    uint32_t sig;
+    uint32_t ver;
+    uint8_t c1;
+    uint8_t c2;
+    uint8_t c3;
+    uint8_t c4;
+    uint32_t parts;
+    uint32_t sections;
+    uint32_t files;
+    uint32_t fnames_size;
+    uint32_t fnames;
+    uint32_t alignment;
+};
+
+struct Section {
+    uint8_t filetype;
+    uint8_t type2;
+    uint8_t type3;
+    uint8_t type4;
+    uint32_t offset;
+    uint32_t unpackedsize;
+    uint32_t packedsize;
+    uint16_t resourcecount;
+    uint16_t unk;
+};
+
+struct FilePart {
+    uint8_t sectionIndex;
+    uint8_t unk1;
+    uint16_t fileIndex;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t unk2;
+};
+
+struct FileMap {
+    uint8_t partsCount;
+    uint8_t unk1;
+    uint8_t filetype;
+    uint8_t unk2;
+    uint32_t fileIndex;
+    uint32_t firstPart;
+};
+
+struct FNameIdx {
+    uint32_t offset;
+};
+
+
+struct Header header;
+struct Section *section;
+struct FilePart *filepart;
+struct FileMap *filemap;
+struct FNameIdx *fname_idx;
+
+
 
 
 //dds header writer
