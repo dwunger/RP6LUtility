@@ -154,7 +154,7 @@ unsigned int flags = 0, hasFOURCC = 0;
 void dds_Generate(unsigned int width, unsigned int height, unsigned int mip_count, unsigned int format, unsigned int tex_type, unsigned int depth); 
 void OpenFileExist(char path[]);
 
-char *GetResourceName(int fileIndex, struct fname_idx[], int filename_offset);
+char *GetResourceName(int fileIndex, struct FNameIdx fname_idx[], int filename_offset);
 char *GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char *rpack_path, char *rpack_basename, char savepath[]); 
 
 int main(int argc, char *argv[]) 
@@ -693,7 +693,7 @@ string GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rp
 	return savepath;
 }
 
-char *GetResourceName(int fileIndex, struct fname_idx[], int filename_offset) 
+char *GetResourceName(int fileIndex, struct FNameIdx fname_idx[], int filename_offset) 
 {
 	static char filename[MAX_PATH];
 	static int cached_index = -1;
