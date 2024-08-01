@@ -168,7 +168,34 @@ int main(int argc, char *argv[])
 	}
 	OpenFileExist(rpack);
 
-	RunTemplate("rp6l.bt");
+	//RunTemplate("rp6l.bt"); // This must be where we populate all the structs. So this is probably the most appropriate placement for manual allocation
+	//!TODO: READ THE HEADER DATA TO MALLOC THESE ARRAYS OF STRUCT:
+	// This should be really easy to do, but since I already have the values, I'm going to cheat
+	// this will break though if anything changes in an update
+	struct header;
+	header.sig = 1278627922;
+	header.ver = 4;
+	header.c1 = 0;
+	header.c2 = 0;
+	header.c3 = 0;
+	header.c4 = 0;
+	header.parts = 80770;
+	header.sections = 2;
+	header.files = 40385;
+	header.fnames_size = 1295536;
+	header.fnames = 40385;
+	header.alignment = 1;
+	// 010 editor probably lazy loads these into memory just in time or 
+	// precomputes them before the script executes. Either way we'll need
+	// to allocate this memory explicitly to make this compile
+	section = malloc(header.sections * sizeof(struct Section));
+	filepart = malloc(header.parts * sizeof(struct FilePart));
+	filemap = malloc(header.fnames * sizeof(struct FileMap));
+	fname_idx = malloc(header.fnames * sizeof(struct FNameIdx));
+	// Evaluate where this should be placed then populate these array of structs.
+	// This should at least get us the compileable stage to begin using the test framework
+	// to implement the 'emulation' layer
+	//!END TODO NOTE
 
 	int i,j;
 	char s[MAX_PATH];
