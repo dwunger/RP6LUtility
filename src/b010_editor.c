@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-
+#include <stdint.h>
 
 void init_emulator() {
     printf("Emulator Initialized");
@@ -52,6 +52,7 @@ int FileOpen(const char *filename, int runTemplate, const char *editAs, int open
         perror("FileOpen: Currently only byte mode/Hex is supported");
     }
     FILE *file;
+    (void)file;  // Silences the unused variable warning
     // ...
     return 0;
 }
@@ -158,6 +159,42 @@ const char *SPrintf(const char *format, ...) {
     // Add any necessary logic to handle the variable arguments and return a default value
     return "";
 }
+
+uint32_t ReadUInt(int offset) {
+    printf("ReadUInt function called with offset: %d\n", offset);
+    // Add any necessary logic or return a default value
+    return 0;
+}
+
+uint16_t ReadUShort(int offset) {
+    printf("ReadUShort function called with offset: %d\n", offset);
+    // Add any necessary logic or return a default value
+    return 0;
+}
+
+uint8_t ReadUByte(int offset) {
+    printf("ReadUByte function called with offset: %d\n", offset);
+    // Add any necessary logic or return a default value
+    return 0;
+}
+
+void FileSave() {
+    printf("FileSave function called\n");
+    // Add any necessary logic
+}
+
+void FileClose() {
+    printf("FileClose function called\n");
+    // Add any necessary logic
+}
+
+void WriteUInt(int offset, uint32_t value) {
+    printf("WriteUInt function called with parameters:\n");
+    printf("- offset: %d\n", offset);
+    printf("- value: %u\n", value);
+    // Add any necessary logic
+}
+
 
 /**
  * 010 Editor Manual
