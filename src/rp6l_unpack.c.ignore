@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#inlcude <stddef.h>
+#include <stddef.h>
 
 #include "b010_editor.h"
 #define MAX_PATH 260 // May include windows.h if I/O overhead is an issue
