@@ -27,11 +27,12 @@ const char* opc_mask = NULL; // Opacity map
 const char* dpt_mask = NULL; // Depth map ??
 const char* det_mask = NULL; // Detail map ??
 const char* idx_mask = NULL; // Index map ??
-
+*/
 
 /*Comment out any line to enable extraction*/
 /*Example: will extract all excluding diffuse textures */
 
+/*
 dif_mask = "_dif"; //diffuse map
 //nrm_mask = "_nrm"; // Normal map
 //rgh_mask = "_rgh"; // Roughness map
@@ -83,7 +84,9 @@ char needle[];
 
 char* fmt(const char *format, ...);
 int contains( char haystack[], char needle[] );
-int isExcluded(const char *file);
+//int isExcluded(const char *file);
+//Tired of the version above BSODing my brain
+int is_excluded(const char *filename, char *exclusion_list[]);
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed); 
 int get_dxt_header(int format); 
 int get_bpp(int format);
@@ -275,44 +278,63 @@ int contains( char haystack[], char needle[] ) {
     return 0;
 }
 
-int isExcluded(const char* file) {
-    if (dif_mask != NULL && strstr(file, dif_mask) != NULL) {
-		return 1;
-    }
-    if (nrm_mask != NULL && strstr(file, nrm_mask) != NULL) {
-		return 1;
-    }
-    if (rgh_mask != NULL && strstr(file, rgh_mask) != NULL) {
-		return 1;
-    }
-    if (clp_mask != NULL && strstr(file, clp_mask) != NULL) {
-		return 1;
-    }
-    if (msk_mask != NULL && strstr(file, msk_mask) != NULL) {
-		return 1;	
-    }
-    if (spc_mask != NULL && strstr(file, spc_mask) != NULL) {
-		return 1;
-    }
-    if (trn_mask != NULL && strstr(file, trn_mask) != NULL) {
-		return 1;
-    }
-	if (ocl_mask != NULL && strstr(file, ocl_mask) != NULL) {
-		return 1;
-    }
-    if (opc_mask != NULL && strstr(file, opc_mask) != NULL) {
-		return 1;
-    }
-    if (dpt_mask != NULL && strstr(file, dpt_mask) != NULL) {
-		return 1;
-    }
-    if (det_mask != NULL && strstr(file, det_mask) != NULL) {
-		return 1;
-    }
-    if (idx_mask != NULL && strstr(file, idx_mask) != NULL) {
-		return 1;
-    }
-    return 0;
+// int isExcluded(const char* file) {
+//     if (dif_mask != NULL && strstr(file, dif_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (nrm_mask != NULL && strstr(file, nrm_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (rgh_mask != NULL && strstr(file, rgh_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (clp_mask != NULL && strstr(file, clp_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (msk_mask != NULL && strstr(file, msk_mask) != NULL) {
+// 		return 1;	
+//     }
+//     if (spc_mask != NULL && strstr(file, spc_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (trn_mask != NULL && strstr(file, trn_mask) != NULL) {
+// 		return 1;
+//     }
+// 	if (ocl_mask != NULL && strstr(file, ocl_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (opc_mask != NULL && strstr(file, opc_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (dpt_mask != NULL && strstr(file, dpt_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (det_mask != NULL && strstr(file, det_mask) != NULL) {
+// 		return 1;
+//     }
+//     if (idx_mask != NULL && strstr(file, idx_mask) != NULL) {
+// 		return 1;
+//     }
+//     return 0;
+// }
+
+int is_excluded(const char *filename, char *exclusion_list[]) {
+
+	// Extract everything
+	if (!exclusion_list) {
+		return 0;
+	}
+
+	// Check if item in exclusion list is found in the filename
+	int i = 0;
+	while (exclusion_list[i] != NULL) {
+		if (strstr(filename, exclusion_list[i])) {
+			return 1; // Found a match
+		}
+		i++;
+	}
+
+	return 0; // No matches found after checking exclusions
 }
 
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
