@@ -203,7 +203,9 @@ int main(int argc, char *argv[])
 	char formatted_savepath[MAX_PATH];
 
 	//Set buffer for textures ~20MB
-	unsigned char buffer[20000000+80];
+	//unsigned char buffer[20000000+80]; //! It didn't matter for the script, but it does now: We should be heap allocating here. Changing this to a malloc doesn't require a refactor elsewhere asside from releasing this to the OS later. Not sure sign matters for 
+	//this char hack. Looks like miles just inlined the conversion factors to handle indexing into this char array, so I suspect interpreter wasn't doing any type magic I need to worry about later.
+	unsigned char* buffer = malloc(20000080);
 
 	char rpack_name[512];
 
