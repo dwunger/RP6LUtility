@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stddef.h>
 #ifndef EDITOR_H
 #define EDITOR_H
@@ -40,5 +41,13 @@ const char *SubStr(const char *str, int start, int len);
 size_t Strlen(const char *str);
 
 const char *SPrintf(const char *format, ...);
+
+uint32_t ReadUInt(int offset);
+uint16_t ReadUShort(int offset);
+uint8_t ReadUByte(int offset);
+void FileSave();
+void FileClose();
+void WriteUInt(int offset, uint32_t value);
+
 
 #endif // EDITOR_H
