@@ -8,9 +8,13 @@
 #include "b010_editor.h"
 #define MAX_PATH 260 // May include windows.h if I/O overhead is an issue
 #define MAX_FMT_BUFFER 2048 
+
+#define STD_STR_SZ 260 //I cannot be bothered to implement resizable strings for this. If there's an overflow, I'm just going to increase this.
 //Filter textures not matching pattern:
 char texture_pattern[] = "sky";
 
+
+/*
 const char* dif_mask = NULL; // Diffuse map
 const char* nrm_mask = NULL; // Normal map
 const char* rgh_mask = NULL; // Roughness map
