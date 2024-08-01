@@ -704,7 +704,7 @@ void OpenFileExist(char path[])
     }
 }
 
-string GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename, char savepath[]) 
+char* GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename, char savepath[]) 
 {
 	//string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
 	sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\textures\\");
