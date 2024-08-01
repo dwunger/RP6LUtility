@@ -210,8 +210,16 @@ int main(int argc, char *argv[])
 	char rpack_name[512];
 
 	FileNameGetBase(rpack);
-	char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
-	char rpack_path[] = FileNameGetPath(rpack);
+
+
+	char rpack_basename[STD_STR_SZ];
+	char rpack_path[STD_STR_SZ];
+
+	strcpy(rpack_basename, SubStr(rpack_name, 0, Strlen(rpack_name) - 6));
+	//char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
+
+	strcpy(rpack_path, FileNameGetPath(rpack));
+	//char rpack_path[] = FileNameGetPath(rpack);
 
 	uint64_t file_offset, file_size, filename_offset;
 
