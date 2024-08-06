@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 	//section.bin
 	buffer[0] = header.sections;
 
-	for (i = 0; i < header.sections; i++) 
+	for (uint32_t i = 0; i < header.sections; i++) 
 	{
 		buffer[5*i + 1] = section[i].filetype;
 		buffer[5*i + 2] = section[i].type2;
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
 		buffer[0] = filemap[i].partsCount;
 		buffer[1] = filemap[i].filetype;
 		buffer[2] = filemap[i].unk2;
-		for (j = 0; j < filemap[i].partsCount; j++) 
+		for (uint32_t j = 0; j < filemap[i].partsCount; j++) 
 		{
 			buffer[3 + j * 2] = filepart[filemap[i].firstPart + j].sectionIndex;
 			buffer[4 + j * 2] = filepart[filemap[i].firstPart + j].unk1;
