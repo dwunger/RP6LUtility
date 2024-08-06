@@ -160,6 +160,10 @@ char *GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char *rpa
 
 int main(int argc, char *argv[]) 
 {
+	// Hush compiler warning. Will parse command line arguments later
+	for (int i = 1; i < argc; i++) {
+		printf("Argument %d: %s\n", i, argv[i]);
+	}
 	char rpack[512];
 	strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
 
