@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 	FileSelect(FindOpenFileW(fmt("%s%s", rpack_path, rpack_name)));
 
 	//file desc
-	for (i = 0; i < header.files; i++) 
+	for (uint32_t i = 0; i < header.files; i++) 
 	{
 		// Test for pattern defined in header
 		if (Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == -1 || is_excluded(GetResourceName(i, fname_idx, filename_offset), exclusion_list))
