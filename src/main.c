@@ -202,8 +202,7 @@ int main(int argc, char *argv[])
 	// to implement the 'emulation' layer
 	//!END TODO NOTE
 
-	int i,j;
-	char s[MAX_PATH];
+	//char s[MAX_PATH]; // this was a global being used in a single function, which is a poor choice for a temp
 	char savepath[MAX_PATH];
 	char formatted_savepath[MAX_PATH];
 
