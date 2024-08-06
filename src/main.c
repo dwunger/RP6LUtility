@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 		{
 			OpenFileExist(rpack);
 			// Test GetResourceName for pattern defined in header
-			if (Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == -1 ||  is_excluded(GetResourceName(i, fname_idx, filename_offset), exclusion_list))
+			if ((Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == NULL) ||  is_excluded(GetResourceName(i, fname_idx, filename_offset), exclusion_list))
 			{
 				continue;  // If not found, skip to next iteration of the loop.
 			}
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 	for (uint32_t i = 0; i < header.files; i++) 
 	{
 		// Test for pattern defined in header
-		if (Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == -1 || is_excluded(GetResourceName(i, fname_idx, filename_offset), exclusion_list))
+		if ((Strstr(GetResourceName(i, fname_idx, filename_offset), texture_pattern) == NULL) || is_excluded(GetResourceName(i, fname_idx, filename_offset), exclusion_list))
 		{
 			continue;  // If not found, skip to next iteration of the loop.
 		}
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 }
 
 int contains( char haystack[], char needle[] ) {
-    if (Strstr(haystack, needle) != -1)
+    if (Strstr(haystack, needle) != NULL)
     {
         return 1;
     }
