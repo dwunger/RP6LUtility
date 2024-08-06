@@ -234,9 +234,9 @@ int main(int argc, char *argv[])
 	int headerSize, headerType, width, height, format, mip_count, depth, tex_type;
 	//header.files corresponds to total number of files in rpack
 	//
-	for (i = 0; i < header.files; i++) 
+	for (uint32_t i = 0; i < header.files; i++) 
 	{
-		for (j = 0; j < filemap[i].partsCount; j++) 
+		for (uint32_t j = 0; j < filemap[i].partsCount; j++) 
 		{
 			OpenFileExist(rpack);
 			// Test GetResourceName for pattern defined in header
