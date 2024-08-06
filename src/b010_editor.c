@@ -145,7 +145,7 @@ size_t Strlen(const char *str) {
 
     if (!str) { perror("Strlen\n"); }
 
-    char *temp_ptr = str;
+    const char *temp_ptr = str;
 
     while (*temp_ptr != '\0') {
         temp_ptr++;
