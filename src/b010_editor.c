@@ -1,5 +1,6 @@
 #include "b010_editor.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
@@ -10,20 +11,19 @@ void init_emulator() {
 
 
 // 010 editor's variants of GLIBC functions from String.h & stdio variants
+
 int Strcmp(const char *str1, const char *str2) {
     printf("Strcmp function called with parameters:\n");
     printf("- str1: %s\n", str1);
     printf("- str2: %s\n", str2);
-    // Add any necessary logic or return a default value
-    return 0;
+    return strcmp(str1, str2);
 }
 
 const char *Strstr(const char *str, const char *substr) {
     printf("Strstr function called with parameters:\n");
     printf("- str: %s\n", str);
     printf("- substr: %s\n", substr);
-    // Add any necessary logic or return a default value
-    return NULL;
+    return strstr(str, substr);
 }
 
 const char *SubStr(const char *str, int start, int len) {
@@ -31,8 +31,56 @@ const char *SubStr(const char *str, int start, int len) {
     printf("- str: %s\n", str);
     printf("- start: %d\n", start);
     printf("- len: %d\n", len);
-    // Add any necessary logic or return a default value
-    return "";
+    
+    if (str == NULL) {
+        return NULL;
+    }
+
+    size_t str_len = strlen(str);
+
+    // Handle negative start index
+    if (start < 0) {
+        start = 0;
+    }
+
+    // Handle start beyond string length
+    if ((size_t)start >= str_len) {
+        char *empty = (char *)malloc(1);
+        if (empty == NULL) {
+            perror("Memory allocation failed");
+            return NULL;
+        }
+        empty[0] = '\0';
+        return empty;
+    }
+
+    // Handle negative len (extract to end of string)
+    if (len < 0) {
+        len = (int)(str_len - start);
+    }
+
+    // Adjust len if it goes beyond the end of the string
+    if ((size_t)(start + len) > str_len) {
+        len = (int)(str_len - start);
+    }
+
+    // Allocate memory for the substring
+    char *substr = (char *)malloc((size_t)len + 1);
+    if (substr == NULL) {
+        perror("Memory allocation failed");
+        return NULL;
+    }
+
+    // Copy the substring
+    memcpy(substr, str + start, (size_t)len);
+    substr[len] = '\0';  // Null-terminate the string
+
+    return substr;
+}
+
+
+void FreeSubStr(const char* str) {
+    free((void*)str);
 }
 
 size_t Strlen(const char *str) {
