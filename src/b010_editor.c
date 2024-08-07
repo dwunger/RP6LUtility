@@ -8,6 +8,52 @@ void init_emulator() {
     printf("Emulator Initialized");
 }
 
+
+// 010 editor's variants of GLIBC functions from String.h & stdio variants
+int Strcmp(const char *str1, const char *str2) {
+    printf("Strcmp function called with parameters:\n");
+    printf("- str1: %s\n", str1);
+    printf("- str2: %s\n", str2);
+    // Add any necessary logic or return a default value
+    return 0;
+}
+
+const char *Strstr(const char *str, const char *substr) {
+    printf("Strstr function called with parameters:\n");
+    printf("- str: %s\n", str);
+    printf("- substr: %s\n", substr);
+    // Add any necessary logic or return a default value
+    return NULL;
+}
+
+const char *SubStr(const char *str, int start, int len) {
+    printf("SubStr function called with parameters:\n");
+    printf("- str: %s\n", str);
+    printf("- start: %d\n", start);
+    printf("- len: %d\n", len);
+    // Add any necessary logic or return a default value
+    return "";
+}
+
+size_t Strlen(const char *str) {
+
+    if (!str) { perror("Strlen\n"); }
+
+    const char *temp_ptr = str;
+
+    while (*temp_ptr != '\0') {
+        temp_ptr++;
+    }
+
+    return (size_t)(temp_ptr - str);
+}
+
+const char *SPrintf(const char *format, ...) {
+    printf("SPrintf function called with format string: %s\n", format);
+    // Add any necessary logic to handle the variable arguments and return a default value
+    return "";
+}
+
 void InsertBytes(int offset, int size, int value) {
     printf("InsertBytes function called with parameters:\n");
     printf("- offset: %d\n", offset);
@@ -113,51 +159,6 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
 void RunTemplate(const char *template_name) {
     printf("RunTemplate function called with template name: %s\n", template_name);
     // ... 
-}
-
-// 010 editor's variants of GLIBC functions from String.h & stdio variants
-int Strcmp(const char *str1, const char *str2) {
-    printf("Strcmp function called with parameters:\n");
-    printf("- str1: %s\n", str1);
-    printf("- str2: %s\n", str2);
-    // Add any necessary logic or return a default value
-    return 0;
-}
-
-const char *Strstr(const char *str, const char *substr) {
-    printf("Strstr function called with parameters:\n");
-    printf("- str: %s\n", str);
-    printf("- substr: %s\n", substr);
-    // Add any necessary logic or return a default value
-    return NULL;
-}
-
-const char *SubStr(const char *str, int start, int len) {
-    printf("SubStr function called with parameters:\n");
-    printf("- str: %s\n", str);
-    printf("- start: %d\n", start);
-    printf("- len: %d\n", len);
-    // Add any necessary logic or return a default value
-    return "";
-}
-
-size_t Strlen(const char *str) {
-
-    if (!str) { perror("Strlen\n"); }
-
-    const char *temp_ptr = str;
-
-    while (*temp_ptr != '\0') {
-        temp_ptr++;
-    }
-
-    return (size_t)(temp_ptr - str);
-}
-
-const char *SPrintf(const char *format, ...) {
-    printf("SPrintf function called with format string: %s\n", format);
-    // Add any necessary logic to handle the variable arguments and return a default value
-    return "";
 }
 
 uint32_t ReadUInt(int offset) {

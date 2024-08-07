@@ -7,12 +7,55 @@
 // Initialize the emulator
 void init_emulator();
 
+// 010 editor's variants of GLIBC functions from String.h & stdio variants
+
+/**
+ * @brief Compare two strings.
+ * @param str1 The first string.
+ * @param str2 The second string.
+ * @return An integer less than, equal to, or greater than zero if str1 is found,
+ *         respectively, to be less than, to match, or be greater than str2.
+ */
+int Strcmp(const char *str1, const char *str2);
+
+/**
+ * @brief Locate substring.
+ * @param str The string to be scanned.
+ * @param substr The substring to search for.
+ * @return A pointer to the first occurrence of substr in str, or NULL if not found.
+ */
+const char *Strstr(const char *str, const char *substr);
+
+/**
+ * @brief Extract substring from string.
+ * @param str The source string.
+ * @param start The start index.
+ * @param len The length of the substring.
+ * @return The extracted substring.
+ */
+const char *SubStr(const char *str, int start, int len);
+
+/**
+ * @brief Get string length.
+ * @param str The string.
+ * @return The length of the string.
+ */
+size_t Strlen(const char *str);
+
+/**
+ * @brief Write formatted data to string.
+ * @param format The format string.
+ * @param ... Additional arguments.
+ * @return The formatted string.
+ */
+const char *SPrintf(const char *format, ...);
 /**
  * @brief Insert bytes into the current file.
  * @param offset The offset where to insert the bytes.
  * @param size The number of bytes to insert.
  * @param value The value to fill the inserted bytes with.
  */
+
 void InsertBytes(int offset, int size, int value);
 
 /**
@@ -103,48 +146,6 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
  */
 void RunTemplate(const char *template_name);
 
-// 010 editor's variants of GLIBC functions from String.h & stdio variants
-
-/**
- * @brief Compare two strings.
- * @param str1 The first string.
- * @param str2 The second string.
- * @return An integer less than, equal to, or greater than zero if str1 is found,
- *         respectively, to be less than, to match, or be greater than str2.
- */
-int Strcmp(const char *str1, const char *str2);
-
-/**
- * @brief Locate substring.
- * @param str The string to be scanned.
- * @param substr The substring to search for.
- * @return A pointer to the first occurrence of substr in str, or NULL if not found.
- */
-const char *Strstr(const char *str, const char *substr);
-
-/**
- * @brief Extract substring from string.
- * @param str The source string.
- * @param start The start index.
- * @param len The length of the substring.
- * @return The extracted substring.
- */
-const char *SubStr(const char *str, int start, int len);
-
-/**
- * @brief Get string length.
- * @param str The string.
- * @return The length of the string.
- */
-size_t Strlen(const char *str);
-
-/**
- * @brief Write formatted data to string.
- * @param format The format string.
- * @param ... Additional arguments.
- * @return The formatted string.
- */
-const char *SPrintf(const char *format, ...);
 
 /**
  * @brief Read an unsigned 32-bit integer from the current file.
