@@ -366,6 +366,7 @@ int main(int argc, char *argv[])
 		//FileSelect(FindOpenFileW(rpack_path + rpack_name));
 		FileSelect(FindOpenFileW(fmt("%s%s", rpack_path , rpack_name)));
 	}
+	free(buffer);
 
 	return 0;
 }
@@ -439,13 +440,14 @@ int is_excluded(const char *filename, char *exclusion_list[]) {
 
 unsigned int computePitch(unsigned int width, unsigned int height, int bpp, int isCompressed) 
 {
+	unsigned int pitch = 0;
 	if (isCompressed == 1) 
 	{
-		unsigned int pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
+		pitch = ((width + 3) / 4) * ((height + 3) / 4) * bpp * 2;	
 	} 
 	else 
 	{
-		unsigned int pitch = ( width * bpp + 7 ) / 8;
+		pitch = ( width * bpp + 7 ) / 8;
 	}
 	return pitch;
 }
