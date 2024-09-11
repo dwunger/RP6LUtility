@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
+#include <windows.h>
+#include <commdlg.h>
 
 void init_emulator() {
     printf("Emulator Initialized");
@@ -200,8 +202,25 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
     printf("- title: %s\n", title);
     printf("- filter: %s\n", filter);
     printf("- default_ext: %s\n", default_ext);
-    // ...
-    return "";
+    static char path[MAX_PATH];
+    OPENFILENAME  ofn;        
+    memset(&ofn, 0, sizeof(ofn));
+    ofn.lStructSize     = sizeof(ofn);
+    ofn.hwndOwner       = NULL;
+    ofn.hInstance       = NULL;
+    ofn.lpstrFilter     = "RPACK\0*.rpack\0\0";    
+    ofn.lpstrFile       = path;
+    ofn.nMaxFile        = MAX_PATH;
+    ofn.lpstrTitle      = title;
+    ofn.Flags           = OFN_NONETWORKBUTTON |
+                          OFN_FILEMUSTEXIST |
+                          OFN_HIDEREADONLY;
+    if (!GetOpenFileName(&ofn)) {
+        perror("InputOpenFileName: Invalid resource path supplied.\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("File selected:\n- %s\n", path);
+    return path; 
 }
 
 void RunTemplate(const char *template_name) {
