@@ -3,6 +3,7 @@ CC := gcc
 CXX := g++
 CFLAGS := -g -Wall -Wextra -std=c11 -I./src -I./include -I./googletest/googletest/include
 CXXFLAGS := -Wall -Wextra -std=c++11 -I./src -I./include -I./googletest/googletest/include -DGTEST_OS_WINDOWS -D_UNICODE -DUNICODE
+LDFLAGS += -lcomdlg32
 
 # Directories
 SRC_DIR := ./src
@@ -39,7 +40,7 @@ run:
 all: $(BIN_DIR)/main
 
 $(BIN_DIR)/main: $(OBJS) $(OBJ_DIR)/main.o | $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
