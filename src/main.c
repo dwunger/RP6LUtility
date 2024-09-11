@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 	char rpack[512];
 	strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
 
-	if ((strcmp(rpack, "") != 0)) {
+	if ((strcmp(rpack, "") == 0)) {
 		puts("rpack file not selected.");
 		exit(1);
 	}
