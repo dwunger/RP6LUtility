@@ -219,7 +219,7 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
         perror("InputOpenFileName: Invalid resource path supplied.\n");
         exit(EXIT_FAILURE);
     }
-    printf("File selected:\n- %s\n", path);
+    printf("InputOpenFileName: File selected:\n- %s\n", path);
     return path; 
 }
 
