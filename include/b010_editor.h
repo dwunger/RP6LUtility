@@ -49,19 +49,25 @@ size_t Strlen(const char *str);
  * @return The formatted string.
  */
 const char *SPrintf(const char *format, ...);
+
 /**
  * @brief Insert bytes into the current file.
  * @param offset The offset where to insert the bytes.
  * @param size The number of bytes to insert.
  * @param value The value to fill the inserted bytes with.
  */
-
 void InsertBytes(int offset, int size, int value);
 
+
 /**
- * @brief Search for an open file by its path.
- * @param path The path of the file to find.
- * @return The index of the file if found, or -1 if not found.
+ * @brief Searches through the list of all open files to see if the file indicated by the path is currently open.
+ * 
+ * This function checks whether a file specified by its path is currently open. If the file is open, it returns the index 
+ * of the file, which can be used with the FileSelect function. If the file is not found in the list of open files, 
+ * the function returns -1.
+ * 
+ * @param path The path of the file to check.
+ * @return The index of the open file if found, or -1 if the file is not found.
  */
 int FindOpenFile(const char *path);
 
