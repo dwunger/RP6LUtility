@@ -195,6 +195,8 @@ void WriteBytes(unsigned char *buffer, int offset, int size) {
     printf("- offset: %d\n", offset);
     printf("- size: %d\n", size);
     // ...
+    (void)buffer;
+
 }
 
 const char *InputOpenFileName(const char *title, const char *filter, const char *default_ext) {
