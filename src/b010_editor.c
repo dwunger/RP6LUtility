@@ -1,6 +1,7 @@
 #include "b010_editor.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
@@ -41,30 +42,30 @@ void init_file_manager() {
     }
     file_manager.current_file_index = -1;
     file_manager.num_open_files = 0;
-    printf("File Manager Initialized\n");
+    DEBUG_LOG("File Manager Initialized\n");
 }
 
 // 010 editor's variants of GLIBC functions from String.h & stdio variants
 
 int Strcmp(const char *str1, const char *str2) {
-    printf("Strcmp function called with parameters:\n");
-    printf("- str1: %s\n", str1);
-    printf("- str2: %s\n", str2);
+    DEBUG_LOG("Strcmp function called with parameters:\n");
+    DEBUG_LOG("- str1: %s\n", str1);
+    DEBUG_LOG("- str2: %s\n", str2);
     return strcmp(str1, str2);
 }
 
 const char *Strstr(const char *str, const char *substr) {
-    printf("Strstr function called with parameters:\n");
-    printf("- str: %s\n", str);
-    printf("- substr: %s\n", substr);
+    DEBUG_LOG("Strstr function called with parameters:\n");
+    DEBUG_LOG("- str: %s\n", str);
+    DEBUG_LOG("- substr: %s\n", substr);
     return strstr(str, substr);
 }
 
 const char *SubStr(const char *str, int start, int len) {
-    printf("SubStr function called with parameters:\n");
-    printf("- str: %s\n", str);
-    printf("- start: %d\n", start);
-    printf("- len: %d\n", len);
+    DEBUG_LOG("SubStr function called with parameters:\n");
+    DEBUG_LOG("- str: %s\n", str);
+    DEBUG_LOG("- start: %d\n", start);
+    DEBUG_LOG("- len: %d\n", len);
     
     if (str == NULL) {
         return NULL;
@@ -131,21 +132,25 @@ size_t Strlen(const char *str) {
 }
 
 const char *SPrintf(const char *format, ...) {
-    printf("SPrintf function called with format string: %s\n", format);
+    DEBUG_LOG("SPrintf function called with format string: %s\n", format);
     // Add any necessary logic to handle the variable arguments and return a default value
+    (void)format;
     return "";
 }
 
 void InsertBytes(int offset, int size, int value) {
-    printf("InsertBytes function called with parameters:\n");
-    printf("- offset: %d\n", offset);
-    printf("- size: %d\n", size);
-    printf("- value: %d\n", value);
+    DEBUG_LOG("InsertBytes function called with parameters:\n");
+    DEBUG_LOG("- offset: %d\n", offset);
+    DEBUG_LOG("- size: %d\n", size);
+    DEBUG_LOG("- value: %d\n", value);
     // ...
+    (void)offset;
+    (void)size;
+    (void)value;
 }
 
 int FindOpenFile(const char *path) {
-    printf("FindOpenFile function called with path: %s\n", path);
+    DEBUG_LOG("FindOpenFile function called with path: %s\n", path);
     
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
         if (file_manager.files[i].is_open && strcmp(file_manager.files[i].path, path) == 0) {
@@ -159,18 +164,18 @@ int FindOpenFile(const char *path) {
 void FileSelect(int index) {
     if (index >= 0 && index < MAX_OPEN_FILES && file_manager.files[index].is_open) {
         file_manager.current_file_index = index;
-        printf("Selected file: %s (index: %d)\n", file_manager.files[index].path, index);
+        DEBUG_LOG("Selected file: %s (index: %d)\n", file_manager.files[index].path, index);
     } else {
         printf("Error: Invalid file index\n");
     }
 }
 
 int FileOpen(const char filename[], int runTemplate, char editAs[], int openDuplicate) {
-    printf("FileOpen function called with parameters:\n");
-    printf("- filename: %s\n", filename);
-    printf("- runTemplate: %d\n", runTemplate);
-    printf("- editAs: %s\n", editAs);
-    printf("- openDuplicate: %d\n", openDuplicate);
+    DEBUG_LOG("FileOpen function called with parameters:\n");
+    DEBUG_LOG("- filename: %s\n", filename);
+    DEBUG_LOG("- runTemplate: %d\n", runTemplate);
+    DEBUG_LOG("- editAs: %s\n", editAs);
+    DEBUG_LOG("- openDuplicate: %d\n", openDuplicate);
 
     if (filename == NULL) {
         printf("FileOpen: unable to open file (null filename)\n");
@@ -179,7 +184,7 @@ int FileOpen(const char filename[], int runTemplate, char editAs[], int openDupl
 
     int index = FindOpenFile(filename);
     if (index != -1 && !openDuplicate) {
-        printf("File already open: %s (index: %d)\n", filename, index);
+        DEBUG_LOG("File already open: %s (index: %d)\n", filename, index);
         return index;
     }
 
@@ -200,7 +205,7 @@ int FileOpen(const char filename[], int runTemplate, char editAs[], int openDupl
             file_manager.num_open_files++;
             file_manager.current_file_index = i;
 
-            printf("File opened: %s (index: %d, editAs: %s)\n", filename, i, file_manager.files[i].edit_as);
+            DEBUG_LOG("File opened: %s (index: %d, editAs: %s)\n", filename, i, file_manager.files[i].edit_as);
 
             if (runTemplate) {
                 printf("Warning: Templates are not currently supported\n");
@@ -215,63 +220,73 @@ int FileOpen(const char filename[], int runTemplate, char editAs[], int openDupl
 }
 
 const char *FileNameGetBase(const char *path) {
-    printf("FileNameGetBase function called with path: %s\n", path);
+    DEBUG_LOG("FileNameGetBase function called with path: %s\n", path);
     // ...
+    (void)path;
     return "";
 }
 
 const char *FileNameGetPath(const char *path) {
-    printf("FileNameGetPath function called with path: %s\n", path);
+    DEBUG_LOG("FileNameGetPath function called with path: %s\n", path);
     // ...
+
+    (void)path;
     return "";
 }
 
 const char *ReadString(int offset) {
-    printf("ReadString function called with offset: %d\n", offset);
+    DEBUG_LOG("ReadString function called with offset: %d\n", offset);
     // ...
+    (void)offset;
     return "";
 }
 
 void MakeDir(const char *path) {
-    printf("MakeDir function called with path: %s\n", path);
+    DEBUG_LOG("MakeDir function called with path: %s\n", path);
     // ...
+    (void)path;
 }
 
 void FileSaveRange(const char *path, int offset, int size) {
-    printf("FileSaveRange function called with parameters:\n");
-    printf("- path: %s\n", path);
-    printf("- offset: %d\n", offset);
-    printf("- size: %d\n", size);
+    DEBUG_LOG("FileSaveRange function called with parameters:\n");
+    DEBUG_LOG("- path: %s\n", path);
+    DEBUG_LOG("- offset: %d\n", offset);
+    DEBUG_LOG("- size: %d\n", size);
     // ...
+    (void)path;
+    (void)offset;
+    (void)size;
 }
 
 int FindOpenFileW(const char *path) {
-    printf("FindOpenFileW function called with path: %s\n", path);
+    DEBUG_LOG("FindOpenFileW function called with path: %s\n", path);
     // ...
+    (void)path;
     return -1;
 }
 
 void WriteBytes(unsigned char *buffer, int offset, int size) {
-    printf("WriteBytes function called with parameters:\n");
-    printf("- offset: %d\n", offset);
-    printf("- size: %d\n", size);
+    DEBUG_LOG("WriteBytes function called with parameters:\n");
+    DEBUG_LOG("- offset: %d\n", offset);
+    DEBUG_LOG("- size: %d\n", size);
     // ...
     (void)buffer;
-
+    (void)offset;
+    (void)size;
 }
 
 const char *InputOpenFileName(const char *title, const char *filter, const char *default_ext) {
-    printf("InputOpenFileName function called with parameters:\n");
-    printf("- title: %s\n", title);
-    printf("- filter: %s\n", filter);
-    printf("- default_ext: %s\n", default_ext);
+    DEBUG_LOG("InputOpenFileName function called with parameters:\n");
+    DEBUG_LOG("- title: %s\n", title);
+    DEBUG_LOG("- filter: %s\n", filter);
+    DEBUG_LOG("- default_ext: %s\n", default_ext);
     static char path[MAX_PATH];
     OPENFILENAME  ofn;        
     memset(&ofn, 0, sizeof(ofn));
     ofn.lStructSize     = sizeof(ofn);
     ofn.hwndOwner       = NULL;
     ofn.hInstance       = NULL;
-    ofn.lpstrFilter     = "RPACK\0*.rpack\0\0";    
+    ofn.lpstrFilter     = "RPACK\0*.rpack\0\0"; // Filter should be used here   
     ofn.lpstrFile       = path;
     ofn.nMaxFile        = MAX_PATH;
     ofn.lpstrTitle      = title;
@@ -282,52 +297,58 @@ const char *InputOpenFileName(const char *title, const char *filter, const char 
         perror("InputOpenFileName: Invalid resource path supplied.\n");
         exit(EXIT_FAILURE);
     }
-    printf("InputOpenFileName: File selected:\n- %s\n", path);
+    DEBUG_LOG("InputOpenFileName: File selected:\n- %s\n", path);
     return path; 
 }
 
 void RunTemplate(const char *template_name) {
-    printf("RunTemplate function called with template name: %s\n", template_name);
+    DEBUG_LOG("RunTemplate function called with template name: %s\n", template_name);
+    (void)template_name;
     // ... 
 }
 
 uint32_t ReadUInt(int offset) {
-    printf("ReadUInt function called with offset: %d\n", offset);
+    DEBUG_LOG("ReadUInt function called with offset: %d\n", offset);
     // Add any necessary logic or return a default value
+    (void)offset;
     return 0;
 }
 
 uint16_t ReadUShort(int offset) {
-    printf("ReadUShort function called with offset: %d\n", offset);
+    DEBUG_LOG("ReadUShort function called with offset: %d\n", offset);
     // Add any necessary logic or return a default value
+    (void)offset;
     return 0;
 }
 
 uint8_t ReadUByte(int offset) {
-    printf("ReadUByte function called with offset: %d\n", offset);
+    DEBUG_LOG("ReadUByte function called with offset: %d\n", offset);
     // Add any necessary logic or return a default value
+    (void)offset;
     return 0;
 }
 
 void FileSave() {
-    printf("FileSave function called\n");
+    DEBUG_LOG("FileSave function called\n");
     // Add any necessary logic
 }
 
 void FileClose() {
-    printf("FileClose function called\n");
+    DEBUG_LOG("FileClose function called\n");
     // Add any necessary logic
 }
 
 void WriteUInt(int offset, uint32_t value) {
-    printf("WriteUInt function called with parameters:\n");
-    printf("- offset: %d\n", offset);
-    printf("- value: %u\n", value);
+    DEBUG_LOG("WriteUInt function called with parameters:\n");
+    DEBUG_LOG("- offset: %d\n", offset);
+    DEBUG_LOG("- value: %u\n", value);
     // Add any necessary logic
+    (void)offset;
+    (void)value;
 }
 
 void init_emulator() {
-    printf("Emulator Initialized");
+    DEBUG_LOG("Emulator Initialized");
     file_manager.current_file_index = -1;
 }
 
