@@ -4,6 +4,12 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#ifdef DEBUG_PRINT
+    #define DEBUG_LOG(...) printf(__VA_ARGS__)
+#else
+    #define DEBUG_LOG(...) ((void)0)
+#endif
+
 // Initialize the emulator
 void init_emulator();
 
@@ -190,5 +196,11 @@ void FileClose();
  * @param value The value to write.
  */
 void WriteUInt(int offset, uint32_t value);
+
+/* Internals */
+
+void init_file_manager();
+
+
 
 #endif // EDITOR_H
