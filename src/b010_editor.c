@@ -7,10 +7,42 @@
 #include <windows.h>
 #include <commdlg.h>
 
-void init_emulator() {
-    printf("Emulator Initialized");
-}
 
+/* Internal */
+
+#define MAX_PATH 260
+#define MAX_OPEN_FILES 512
+
+typedef struct {
+    char path[MAX_PATH];
+    bool is_open;
+    char edit_as[20];
+} FileEntry;
+
+typedef struct {
+    FileEntry files[MAX_OPEN_FILES];
+    int current_file_index;
+    int num_open_files;
+} FileManager;
+
+FileManager file_manager;
+
+
+/* Internal */
+
+
+/* Initializers */
+
+void init_file_manager() {
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        file_manager.files[i].is_open = false;
+        file_manager.files[i].path[0] = '\0';
+        file_manager.files[i].edit_as[0] = '\0';
+    }
+    file_manager.current_file_index = -1;
+    file_manager.num_open_files = 0;
+    printf("File Manager Initialized\n");
+}
 
 // 010 editor's variants of GLIBC functions from String.h & stdio variants
 
@@ -114,43 +146,72 @@ void InsertBytes(int offset, int size, int value) {
 
 int FindOpenFile(const char *path) {
     printf("FindOpenFile function called with path: %s\n", path);
-    // ...
+    
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        if (file_manager.files[i].is_open && strcmp(file_manager.files[i].path, path) == 0) {
+            return i;
+        }
+    }
+    
     return -1;
 }
 
 void FileSelect(int index) {
-    printf("FileSelect function called with index: %d\n", index);
-    // ...
+    if (index >= 0 && index < MAX_OPEN_FILES && file_manager.files[index].is_open) {
+        file_manager.current_file_index = index;
+        printf("Selected file: %s (index: %d)\n", file_manager.files[index].path, index);
+    } else {
+        printf("Error: Invalid file index\n");
+    }
 }
 
-int FileOpen(const char *filename, int runTemplate, const char *editAs, int openDuplicate) {
+int FileOpen(const char filename[], int runTemplate, char editAs[], int openDuplicate) {
     printf("FileOpen function called with parameters:\n");
-    printf("- path: %s\n", filename);
-    printf("- readonly: %d\n", runTemplate);
-    printf("- mode: %s\n", editAs);
-    printf("- bigendian: %d\n", openDuplicate);
- 
-    if (filename == NULL) { 
-        perror("FileOpen: unable to open file");
+    printf("- filename: %s\n", filename);
+    printf("- runTemplate: %d\n", runTemplate);
+    printf("- editAs: %s\n", editAs);
+    printf("- openDuplicate: %d\n", openDuplicate);
+
+    if (filename == NULL) {
+        printf("FileOpen: unable to open file (null filename)\n");
         return -1;
     }
-    
-    if (!runTemplate) {
-        perror("Templates are not currently supported");
+
+    int index = FindOpenFile(filename);
+    if (index != -1 && !openDuplicate) {
+        printf("File already open: %s (index: %d)\n", filename, index);
+        return index;
     }
-    
-    if (!openDuplicate) {
-        perror("Fopen: Current implementation does not support \
-                duplicate handles to open file");
+
+    // Find the first available slot
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        if (!file_manager.files[i].is_open) {
+            strncpy(file_manager.files[i].path, filename, MAX_PATH - 1);
+            file_manager.files[i].path[MAX_PATH - 1] = '\0';
+            file_manager.files[i].is_open = true;
+            
+            if (editAs[0] != '\0') {
+                strncpy(file_manager.files[i].edit_as, editAs, 19);
+                file_manager.files[i].edit_as[19] = '\0';
+            } else {
+                strcpy(file_manager.files[i].edit_as, "Hex");  // Default to Hex
+            }
+
+            file_manager.num_open_files++;
+            file_manager.current_file_index = i;
+
+            printf("File opened: %s (index: %d, editAs: %s)\n", filename, i, file_manager.files[i].edit_as);
+
+            if (runTemplate) {
+                printf("Warning: Templates are not currently supported\n");
+            }
+
+            return i;
+        }
     }
-    
-    if (strcmp(editAs, "Hex")) {
-        perror("FileOpen: Currently only byte mode/Hex is supported");
-    }
-    FILE *file;
-    (void)file;  // Silences the unused variable warning
-    // ...
-    return 0;
+
+    printf("Error: Maximum number of open files reached\n");
+    return -1;
 }
 
 const char *FileNameGetBase(const char *path) {
@@ -265,6 +326,10 @@ void WriteUInt(int offset, uint32_t value) {
     // Add any necessary logic
 }
 
+void init_emulator() {
+    printf("Emulator Initialized");
+    file_manager.current_file_index = -1;
+}
 
 /**
  * 010 Editor Manual
