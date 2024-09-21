@@ -85,7 +85,7 @@ void FileSelect(int index);
  * @param openDuplicate If true, open a duplicate copy if the file is already open.
  * @return The file index of the opened file, or a negative number if the file couldn't be opened.
  */
-int FileOpen(const char *filename, int runTemplate, const char *editAs, int openDuplicate);
+int FileOpen(const char *filename, int runTemplate, char *editAs, int openDuplicate);
 
 /**
  * @brief Get the base name of a file path.
