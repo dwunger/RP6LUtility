@@ -170,6 +170,12 @@ void FileSelect(int index) {
     }
 }
 
+int GetFileNum() {
+    
+
+    return -1;
+}
+
 int FileOpen(const char filename[], int runTemplate, char editAs[], int openDuplicate) {
     DEBUG_LOG("FileOpen function called with parameters:\n");
     DEBUG_LOG("- filename: %s\n", filename);

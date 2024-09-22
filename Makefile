@@ -4,6 +4,7 @@ CXX := g++
 CFLAGS := -g -Wall -Wextra -std=c11 -I./src -I./include -I./googletest/googletest/include
 CXXFLAGS := -Wall -Wextra -std=c++11 -I./src -I./include -I./googletest/googletest/include -DGTEST_OS_WINDOWS -D_UNICODE -DUNICODE
 LDFLAGS += -lcomdlg32
+CXXFLAGS += -DEBUG_PRINT
 
 # Directories
 SRC_DIR := ./src

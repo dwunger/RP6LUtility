@@ -90,14 +90,14 @@ TEST(b010EditorTests, FileSelect) {
     // Select a file and check if it's selected
     FileSelect(index1);
     // You might need to add a function to get the current file index
-    // EXPECT_EQ(GetCurrentFileIndex(), index1);
+    // EXPECT_EQ(GetFileNum(), index1);
 
     // Select another file
     FileSelect(index2);
-    // EXPECT_EQ(GetCurrentFileIndex(), index2);
+    // EXPECT_EQ(GetFileNum(), index2);
 
     // Try to select an invalid index
     FileSelect(-1);
-    // EXPECT_EQ(GetCurrentFileIndex(), index2);  // Should not change
+    // EXPECT_EQ(GetFileNum(), index2);  // Should not change
 }
 
