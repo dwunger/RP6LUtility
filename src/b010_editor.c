@@ -494,6 +494,11 @@ void FileClose() {
     }
 }
 
+// Get the current file index.
+int GetFileNum(void) {
+    return file_manager.current_file_index;
+}
+
 // Write an unsigned 32-bit integer to the current file.
 void WriteUInt(int offset, uint32_t value) {
     DEBUG_LOG("WriteUInt called:\n  offset: %d\n  value: %u\n", offset, value);

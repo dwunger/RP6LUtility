@@ -158,49 +158,92 @@ void OpenFileExist(char path[]);
 char *GetResourceName(int fileIndex, struct FNameIdx fname_idx[], int filename_offset);
 char *GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char *rpack_path, char *rpack_basename, char savepath[]); 
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-	// Hush compiler warning. Will parse command line arguments later
-	for (int i = 1; i < argc; i++) {
-		printf("Argument %d: %s\n", i, argv[i]);
-	}
 	char rpack[512];
-	strcpy(rpack, InputOpenFileName("Select a file to unpack", "rpack (*.rpack)", ""));
 
-	if ((strcmp(rpack, "") == 0)) {
-		puts("rpack file not selected.");
-		exit(1);
+	// Check for command line argument first
+	if (argc > 1) {
+		strncpy(rpack, argv[1], sizeof(rpack) - 1);
+		rpack[sizeof(rpack) - 1] = '\0';
+		printf("Using file: %s\n", rpack);
+	} else {
+		const char *selected = InputOpenFileName("Select a file to unpack", "rpack Files (*.rpack)\0*.rpack\0All Files (*.*)\0*.*\0", "rpack");
+		if (selected == NULL || strcmp(selected, "") == 0) {
+			puts("rpack file not selected.");
+			exit(1);
+		}
+		strcpy(rpack, selected);
 	}
 	OpenFileExist(rpack);
 
-	//RunTemplate("rp6l.bt"); // This must be where we populate all the structs. So this is probably the most appropriate placement for manual allocation
-	//!TODO: READ THE HEADER DATA TO MALLOC THESE ARRAYS OF STRUCT:
-	// This should be really easy to do, but since I already have the values, I'm going to cheat
-	// this will break though if anything changes in an update
-	struct header;
-	header.sig = 1278627922;
-	header.ver = 4;
-	header.c1 = 0;
-	header.c2 = 0;
-	header.c3 = 0;
-	header.c4 = 0;
-	header.parts = 80770;
-	header.sections = 2;
-	header.files = 40385;
-	header.fnames_size = 1295536;
-	header.fnames = 40385;
-	header.alignment = 1;
-	// 010 editor probably lazy loads these into memory just in time or 
-	// precomputes them before the script executes. Either way we'll need
-	// to allocate this memory explicitly to make this compile
+	// Read header from file (36 bytes at offset 0)
+	header.sig = ReadUInt(0);
+	header.ver = ReadUInt(4);
+	header.c1 = ReadUByte(8);
+	header.c2 = ReadUByte(9);
+	header.c3 = ReadUByte(10);
+	header.c4 = ReadUByte(11);
+	header.parts = ReadUInt(12);
+	header.sections = ReadUInt(16);
+	header.files = ReadUInt(20);
+	header.fnames_size = ReadUInt(24);
+	header.fnames = ReadUInt(28);
+	header.alignment = ReadUInt(32);
+
+	// Allocate arrays based on header values
 	section = malloc(header.sections * sizeof(struct Section));
 	filepart = malloc(header.parts * sizeof(struct FilePart));
 	filemap = malloc(header.fnames * sizeof(struct FileMap));
 	fname_idx = malloc(header.fnames * sizeof(struct FNameIdx));
-	// Evaluate where this should be placed then populate these array of structs.
-	// This should at least get us the compileable stage to begin using the test framework
-	// to implement the 'emulation' layer
-	//!END TODO NOTE
+
+	if (!section || !filepart || !filemap || !fname_idx) {
+		puts("Memory allocation failed");
+		exit(1);
+	}
+
+	// Read sections (20 bytes each, starting at offset 36)
+	uint32_t offset = 36;
+	for (uint32_t i = 0; i < header.sections; i++) {
+		section[i].filetype = ReadUByte(offset);
+		section[i].type2 = ReadUByte(offset + 1);
+		section[i].type3 = ReadUByte(offset + 2);
+		section[i].type4 = ReadUByte(offset + 3);
+		section[i].offset = ReadUInt(offset + 4);
+		section[i].unpackedsize = ReadUInt(offset + 8);
+		section[i].packedsize = ReadUInt(offset + 12);
+		section[i].resourcecount = ReadUShort(offset + 16);
+		section[i].unk = ReadUShort(offset + 18);
+		offset += 20;
+	}
+
+	// Read fileparts (16 bytes each)
+	for (uint32_t i = 0; i < header.parts; i++) {
+		filepart[i].sectionIndex = ReadUByte(offset);
+		filepart[i].unk1 = ReadUByte(offset + 1);
+		filepart[i].fileIndex = ReadUShort(offset + 2);
+		filepart[i].offset = ReadUInt(offset + 4);
+		filepart[i].size = ReadUInt(offset + 8);
+		filepart[i].unk2 = ReadUInt(offset + 12);
+		offset += 16;
+	}
+
+	// Read filemap (12 bytes each)
+	for (uint32_t i = 0; i < header.fnames; i++) {
+		filemap[i].partsCount = ReadUByte(offset);
+		filemap[i].unk1 = ReadUByte(offset + 1);
+		filemap[i].filetype = ReadUByte(offset + 2);
+		filemap[i].unk2 = ReadUByte(offset + 3);
+		filemap[i].fileIndex = ReadUInt(offset + 4);
+		filemap[i].firstPart = ReadUInt(offset + 8);
+		offset += 12;
+	}
+
+	// Read fname_idx (4 bytes each)
+	for (uint32_t i = 0; i < header.fnames; i++) {
+		fname_idx[i].offset = ReadUInt(offset);
+		offset += 4;
+	}
 
 	//char s[MAX_PATH]; // this was a global being used in a single function, which is a poor choice for a temp
 	char savepath[MAX_PATH];
@@ -212,18 +255,18 @@ int main(int argc, char *argv[])
 	unsigned char* buffer = malloc(20000080);
 
 	char rpack_name[512];
-
-	FileNameGetBase(rpack);
-
+	strcpy(rpack_name, FileNameGetBase(rpack));
 
 	char rpack_basename[STD_STR_SZ];
 	char rpack_path[STD_STR_SZ];
 
 	strcpy(rpack_basename, SubStr(rpack_name, 0, Strlen(rpack_name) - 6));
-	//char rpack_basename[] = SubStr(rpack_name, 0, Strlen(rpack_name) - 6);
-
 	strcpy(rpack_path, FileNameGetPath(rpack));
-	//char rpack_path[] = FileNameGetPath(rpack);
+
+	// Create output directories
+	MakeDir(fmt("%s\\%s_unpack", rpack_path, rpack_basename));
+	MakeDir(fmt("%s\\%s_unpack\\meta", rpack_path, rpack_basename));
+	MakeDir(fmt("%s\\%s_unpack\\textures", rpack_path, rpack_basename));
 
 	uint64_t file_offset, file_size, filename_offset;
 
@@ -251,8 +294,8 @@ int main(int argc, char *argv[])
 			file_offset = filepart[filemap[i].firstPart + j].offset;
 			file_offset = file_offset << 4;
 			file_offset = file_offset + (section[filepart[filemap[i].firstPart + j].sectionIndex].offset << 4);
-			//Detect if compressed
-			if ((section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize == 0)) {
+			//Detect if compressed (packedsize != 0 means data is packed/compressed)
+			if (section[filepart[filemap[i].firstPart + j].sectionIndex].packedsize != 0) {
 				puts("Can not extract compressed files, extraction aborted");
 				exit(1);
 			}
@@ -300,20 +343,23 @@ int main(int argc, char *argv[])
 						FileClose();
 					}
 				}
-			} 
-			else 
+			}
+			else
 			{
-				FileSaveRange(savepath, file_offset, file_size);
+				// Only save non-texture meta data (Part 0), skip non-texture data files
+				if (j == 0) {
+					FileSaveRange(savepath, file_offset, file_size);
+				}
 			}
 
 			//FileSelect(FindOpenFileW(rpack_path + rpack_name));
-			FileSelect(FindOpenFileW(fmt("%s%s", rpack_path, rpack_name)));
+			FileSelect(FindOpenFileW(fmt("%s\\%s", rpack_path, rpack_name)));
 		}
 	}
 
 	//header.bin
 	//FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\header.bin", 0, 36);
-	FileSaveRange(fmt("%s%s%s", rpack_path, rpack_basename, "_unpack\\meta\\header.bin"), 0, 36);
+	FileSaveRange(fmt("%s\\%s_unpack\\meta\\header.bin", rpack_path, rpack_basename), 0, 36);
 	
 	//section.bin
 	buffer[0] = header.sections;
@@ -328,14 +374,14 @@ int main(int argc, char *argv[])
 	}
 	unsigned int buffersize = header.sections * 5 + 1;
 	//FileSaveRange(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", 0, 0);
-	FileSaveRange(fmt("%s%s%s", rpack_path, rpack_basename, "_unpack\\meta\\section.bin"), 0, 0);
+	FileSaveRange(fmt("%s\\%s_unpack\\meta\\section.bin", rpack_path, rpack_basename), 0, 0);
 	//FileOpen(rpack_path + rpack_basename + "_unpack\\meta\\section.bin", false, "Hex", false);
-	FileOpen(fmt("%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\section.bin"), false, "Hex", false);
+	FileOpen(fmt("%s\\%s_unpack\\meta\\section.bin", rpack_path, rpack_basename), false, "Hex", false);
 	WriteBytes(buffer, 0, buffersize);
 	FileSave();
 	FileClose();
 	//FileSelect(FindOpenFileW(rpack_path + rpack_name));
-	FileSelect(FindOpenFileW(fmt("%s%s", rpack_path, rpack_name)));
+	FileSelect(FindOpenFileW(fmt("%s\\%s", rpack_path, rpack_name)));
 
 	//file desc
 	for (uint32_t i = 0; i < header.files; i++) 
@@ -356,15 +402,15 @@ int main(int argc, char *argv[])
 		buffersize = 3 + filemap[i].partsCount * 2;
 
 		//savepath = rpack_path + rpack_basename + "_unpack\\meta\\" + GetResourceName(i) + ".desc";
-		strcpy(savepath, fmt("%s%s%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\" , GetResourceName(i, fname_idx, filename_offset) , ".desc"));
-		
+		strcpy(savepath, fmt("%s\\%s_unpack\\meta\\%s.desc", rpack_path, rpack_basename, GetResourceName(i, fname_idx, filename_offset)));
+
 		FileSaveRange(savepath, 0, 0);
 		FileOpen(savepath, false, "Hex", false);
 		WriteBytes(buffer, 0, buffersize);
 		FileSave();
 		FileClose();
 		//FileSelect(FindOpenFileW(rpack_path + rpack_name));
-		FileSelect(FindOpenFileW(fmt("%s%s", rpack_path , rpack_name)));
+		FileSelect(FindOpenFileW(fmt("%s\\%s", rpack_path, rpack_name)));
 	}
 	free(buffer);
 
@@ -710,14 +756,14 @@ void OpenFileExist(char path[])
     }
 }
 
-char* GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename, char savepath[]) 
+char* GetResourceSavePath(char *ResourceName, int Part, int IsTexture, char* rpack_path, char* rpack_basename, char savepath[])
 {
 	//string savepath = rpack_path + rpack_basename + "_unpack\\textures\\";
-	sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\textures\\");
+	sprintf(savepath, "%s\\%s_unpack\\textures\\", rpack_path, rpack_basename);
 	if (Part == 0)
 	{
 		//savepath = rpack_path + rpack_basename + "_unpack\\meta\\";
-		sprintf(savepath, "%s%s%s", rpack_path , rpack_basename , "_unpack\\meta\\");
+		sprintf(savepath, "%s\\%s_unpack\\meta\\", rpack_path, rpack_basename);
 	}
 
 	MakeDir(savepath);

@@ -197,6 +197,12 @@ void FileClose();
  */
 void WriteUInt(int offset, uint32_t value);
 
+/**
+ * @brief Get the current file index.
+ * @return The index of the currently selected file, or -1 if no file is selected.
+ */
+int GetFileNum(void);
+
 /* Internals */
 
 void init_file_manager();
