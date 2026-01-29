@@ -346,7 +346,10 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				FileSaveRange(savepath, file_offset, file_size);
+				// Only extract Part 0 (metadata) for non-textures
+				if (j == 0) {
+					FileSaveRange(savepath, file_offset, file_size);
+				}
 			}
 
 			//FileSelect(FindOpenFileW(rpack_path + rpack_name));
