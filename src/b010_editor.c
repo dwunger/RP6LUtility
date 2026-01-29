@@ -34,6 +34,14 @@ static FileManager file_manager;
 
 /* Internal utility functions */
 
+// Normalize path separators to forward slashes (in-place).
+static void normalize_path(char *path) {
+    if (!path) return;
+    for (char *p = path; *p; p++) {
+        if (*p == '\\') *p = '/';
+    }
+}
+
 // Return pointer to the base file name from a given path.
 static const char *get_basename(const char *path) {
     if (!path) return "";
@@ -197,8 +205,12 @@ void InsertBytes(int offset, int size, int value) {
 // Searches for an open file by its path.
 int FindOpenFile(const char *path) {
     DEBUG_LOG("FindOpenFile called with path: %s\n", path);
+    char normalized[MAX_PATH];
+    strncpy(normalized, path, MAX_PATH - 1);
+    normalized[MAX_PATH - 1] = '\0';
+    normalize_path(normalized);
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
-        if (file_manager.files[i].is_open && strcmp(file_manager.files[i].path, path) == 0) {
+        if (file_manager.files[i].is_open && strcmp(file_manager.files[i].path, normalized) == 0) {
             return i;
         }
     }
@@ -236,6 +248,7 @@ int FileOpen(const char filename[], int runTemplate, char editAs[], int openDupl
         if (!file_manager.files[i].is_open) {
             strncpy(file_manager.files[i].path, filename, MAX_PATH - 1);
             file_manager.files[i].path[MAX_PATH - 1] = '\0';
+            normalize_path(file_manager.files[i].path);
             file_manager.files[i].is_open = true;
             if (editAs[0] != '\0') {
                 strncpy(file_manager.files[i].edit_as, editAs, sizeof(file_manager.files[i].edit_as) - 1);

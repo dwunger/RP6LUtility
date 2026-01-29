@@ -48,7 +48,7 @@ dif_mask = "_dif"; //diffuse map
 //idx_mask = "_idx"; // Index map ??
 */
 
-char *exclusion_list[] = {"_dif","_nrm","_rgh","_clp","_msk","_spc","_trn","_ocl","_opc","_dpt","_det","_idx",NULL};
+char *exclusion_list[] = {NULL};  // Empty list - extract all
 
 struct Header {
     uint32_t sig;
@@ -346,10 +346,7 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				// Only save non-texture meta data (Part 0), skip non-texture data files
-				if (j == 0) {
-					FileSaveRange(savepath, file_offset, file_size);
-				}
+				FileSaveRange(savepath, file_offset, file_size);
 			}
 
 			//FileSelect(FindOpenFileW(rpack_path + rpack_name));
