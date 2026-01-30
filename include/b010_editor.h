@@ -62,7 +62,7 @@ const char *SPrintf(const char *format, ...);
  * @param size The number of bytes to insert.
  * @param value The value to fill the inserted bytes with.
  */
-void InsertBytes(int offset, int size, int value);
+void InsertBytes(int64_t offset, int64_t size, int value);
 
 
 /**
@@ -141,7 +141,7 @@ int FindOpenFileW(const char *path);
  * @param offset The offset where to start writing.
  * @param size The number of bytes to write.
  */
-void WriteBytes(unsigned char *buffer, int offset, int size);
+void WriteBytes(unsigned char *buffer, int64_t offset, int64_t size);
 
 /**
  * @brief Show a file open dialog and return the selected file name.
@@ -202,6 +202,117 @@ void WriteUInt(int offset, uint32_t value);
  * @return The index of the currently selected file, or -1 if no file is selected.
  */
 int GetFileNum(void);
+
+/**
+ * @brief Get the size of the current file.
+ * @return The size in bytes of the current file.
+ */
+size_t FileSize(void);
+
+/**
+ * @brief Check if a file exists.
+ * @param path The path of the file to check.
+ * @return 1 if the file exists, 0 otherwise.
+ */
+int FileExists(const char *path);
+
+/**
+ * @brief Read bytes from the current file into a buffer.
+ * @param buffer The buffer to read into.
+ * @param offset The offset to start reading from.
+ * @param size The number of bytes to read.
+ */
+void ReadBytes(unsigned char *buffer, int offset, int size);
+
+/**
+ * @brief Write an unsigned 16-bit integer to the current file.
+ * @param offset The offset to write to.
+ * @param value The value to write.
+ */
+void WriteUShort(int offset, uint16_t value);
+
+/**
+ * @brief Write an unsigned 8-bit integer to the current file.
+ * @param offset The offset to write to.
+ * @param value The value to write.
+ */
+void WriteUByte(int offset, uint8_t value);
+
+/**
+ * @brief Write a string to the current file.
+ * @param offset The offset to write to.
+ * @param str The string to write.
+ */
+void WriteString(int64_t offset, const char *str);
+
+/**
+ * @brief Delete bytes from the current file.
+ * @param offset The offset to start deleting from.
+ * @param size The number of bytes to delete.
+ */
+void DeleteBytes(int64_t offset, int64_t size);
+
+/**
+ * @brief Read an unsigned 64-bit integer from the current file.
+ * @param offset The offset to read from.
+ * @return The unsigned 64-bit integer read from the file.
+ */
+uint64_t ReadUInt64(int offset);
+
+/**
+ * @brief Write an unsigned 64-bit integer to the current file.
+ * @param offset The offset to write to.
+ * @param value The value to write.
+ */
+void WriteUInt64(int offset, uint64_t value);
+
+/**
+ * @brief Show a directory selection dialog.
+ * @param title The title of the dialog.
+ * @param default_path The default path to start from.
+ * @return The selected directory path, or empty string if cancelled.
+ */
+const char *InputDirectory(const char *title, const char *default_path);
+
+/**
+ * @brief Find first occurrence of a pattern in the current file.
+ * @param pattern The pattern to search for.
+ * @param matchCase Case sensitive search.
+ * @param matchWholeWord Match whole words only.
+ * @param wildcardMatchSingleChar Wildcard for single char.
+ * @param wildcardMatchMultipleChar Wildcard for multiple chars.
+ * @param method Search method (1 = ASCII string).
+ * @param start Start offset for search.
+ * @param size Size of region to search.
+ * @return Offset of first match, or -1 if not found.
+ */
+int64_t FindFirst(const char *pattern, int matchCase, int matchWholeWord,
+                  int wildcardMatchSingleChar, float wildcardMatchMultipleChar,
+                  int method, int64_t start, int64_t size);
+
+/* File list for FindFiles */
+typedef struct {
+    char filename[260];
+} TFileEntry;
+
+typedef struct {
+    int filecount;
+    TFileEntry *file;
+} TFileList;
+
+/**
+ * @brief Find files matching a pattern in a directory.
+ * @param dir The directory to search.
+ * @param pattern The file pattern (e.g. "*.desc").
+ * @return A TFileList structure containing matching files.
+ */
+TFileList FindFiles(const char *dir, const char *pattern);
+
+/**
+ * @brief Free a TFileList structure.
+ * @param fl The file list to free.
+ */
+void FreeFindFiles(TFileList *fl);
 
 /* Internals */
 

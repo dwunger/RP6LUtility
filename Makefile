@@ -3,7 +3,7 @@ CC := gcc
 CXX := g++
 CFLAGS := -g -Wall -Wextra -std=c11 -I./src -I./include -I./googletest/googletest/include
 CXXFLAGS := -Wall -Wextra -std=c++11 -I./src -I./include -I./googletest/googletest/include -DGTEST_OS_WINDOWS -D_UNICODE -DUNICODE
-LDFLAGS += -lcomdlg32
+LDFLAGS += -lcomdlg32 -lole32 -lshell32
 CXXFLAGS += -DEBUG_PRINT
 
 # Directories
@@ -13,8 +13,8 @@ BUILD_DIR := ./build
 OBJ_DIR := $(BUILD_DIR)/obj
 BIN_DIR := $(BUILD_DIR)/bin
 
-# Source files (excluding main.c)
-SRCS := $(filter-out $(SRC_DIR)/main.c,$(wildcard $(SRC_DIR)/*.c))
+# Source files (excluding extract.c and inject.c - they have their own main functions)
+SRCS := $(filter-out $(SRC_DIR)/extract.c $(SRC_DIR)/inject.c,$(wildcard $(SRC_DIR)/*.c))
 OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 
 # Test files
@@ -30,23 +30,37 @@ GTEST_SRCS := $(GTEST_DIR)/googletest/src/gtest-all.cc
 GTEST_OBJS := $(OBJ_DIR)/gtest-all.o
 
 # Targets
-.PHONY: debug run all clean test help
+.PHONY: debug run all clean test help extract inject run-inject
 debug:
-	@echo "=== DEBUG MAIN ==="
-	powershell -Command "gdb -tui ./build/bin/main.exe" 
-run: 
-	@echo "=== RUNNING MAIN ==="
-	powershell -Command "./build/bin/main.exe"
+	@echo "=== DEBUG EXTRACT ==="
+	powershell -Command "gdb -tui ./build/bin/extract.exe"
+run:
+	@echo "=== RUNNING EXTRACT ==="
+	powershell -Command "./build/bin/extract.exe"
 
-all: $(BIN_DIR)/main
+run-inject:
+	@echo "=== RUNNING INJECT ==="
+	powershell -Command "./build/bin/inject.exe"
 
-$(BIN_DIR)/main: $(OBJS) $(OBJ_DIR)/main.o | $(BIN_DIR)
+all: extract inject
+
+extract: $(BIN_DIR)/extract
+
+inject: $(BIN_DIR)/inject
+
+$(BIN_DIR)/extract: $(OBJS) $(OBJ_DIR)/extract.o | $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/inject: $(OBJS) $(OBJ_DIR)/inject.o | $(BIN_DIR)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/main.o: $(SRC_DIR)/main.c | $(OBJ_DIR)
+$(OBJ_DIR)/extract.o: $(SRC_DIR)/extract.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/inject.o: $(SRC_DIR)/inject.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 test: unit-test
@@ -67,8 +81,11 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  all		  - Build the main executable"
-	@echo "  run          - Build and run main executable"
+	@echo "  all          - Build extract and inject executables"
+	@echo "  extract      - Build the extraction executable (extract.exe)"
+	@echo "  inject       - Build the injection executable (inject.exe)"
+	@echo "  run          - Run the extract executable"
+	@echo "  run-inject   - Run the inject executable"
 	@echo "  test         - Build and run the unit tests"
 	@echo "  clean        - Clean the build artifacts and Google Test library"
 	@echo "  debug        - Start GDB debug session"

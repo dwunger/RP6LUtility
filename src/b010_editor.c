@@ -7,7 +7,8 @@
 #include <stdint.h>
 #include <windows.h>
 #include <commdlg.h>
-#include <stdarg.h>  // for SPrintf
+#include <shlobj.h>   // for SHBrowseForFolder
+#include <stdarg.h>   // for SPrintf
 
 #ifndef MAX_PATH
 #define MAX_PATH 260
@@ -19,9 +20,13 @@ typedef struct {
     char path[MAX_PATH];
     bool is_open;
     char edit_as[20];
-    unsigned char *buffer;      // in‑memory file content
+    unsigned char *buffer;      // in‑memory file content (or mmap view)
     size_t buffer_size;         // current number of bytes
     size_t buffer_capacity;     // allocated size of buffer
+    // Memory-mapped file handles (for large files)
+    HANDLE hFile;
+    HANDLE hMapping;
+    bool is_mmap;               // true if using memory-mapped I/O
 } FileEntry;
 
 typedef struct {
@@ -86,6 +91,9 @@ void init_file_manager() {
         file_manager.files[i].buffer = NULL;
         file_manager.files[i].buffer_size = 0;
         file_manager.files[i].buffer_capacity = 0;
+        file_manager.files[i].hFile = INVALID_HANDLE_VALUE;
+        file_manager.files[i].hMapping = NULL;
+        file_manager.files[i].is_mmap = false;
     }
     file_manager.current_file_index = -1;
     file_manager.num_open_files = 0;
@@ -171,35 +179,74 @@ const char *SPrintf(const char *format, ...) {
 }
 
 // Insert bytes into the current file.
-void InsertBytes(int offset, int size, int value) {
-    DEBUG_LOG("InsertBytes called:\n  offset: %d\n  size: %d\n  value: %d\n", offset, size, value);
+void InsertBytes(int64_t offset, int64_t size, int value) {
+    DEBUG_LOG("InsertBytes called:\n  offset: %lld\n  size: %lld\n  value: %d\n", (long long)offset, (long long)size, value);
     if (file_manager.current_file_index < 0) {
         printf("InsertBytes: No file is currently open\n");
         return;
     }
     FileEntry *file = &file_manager.files[file_manager.current_file_index];
-    if (offset < 0 || offset > (int)file->buffer_size) {
+    if (offset < 0 || (size_t)offset > file->buffer_size) {
         printf("InsertBytes: Invalid offset\n");
         return;
     }
-    size_t new_size = file->buffer_size + size;
-    if (new_size > file->buffer_capacity) {
-        size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
-        while (new_capacity < new_size)
-            new_capacity *= 2;
-        unsigned char *new_buffer = realloc(file->buffer, new_capacity);
-        if (!new_buffer) {
-            perror("InsertBytes: Memory allocation failed");
+
+    if (file->is_mmap) {
+        // For memory-mapped files, we need to extend the file and remap
+        size_t new_size = file->buffer_size + size;
+
+        // Unmap current view
+        UnmapViewOfFile(file->buffer);
+        CloseHandle(file->hMapping);
+
+        // Extend the file
+        LARGE_INTEGER newFileSize;
+        newFileSize.QuadPart = (LONGLONG)new_size;
+        SetFilePointerEx(file->hFile, newFileSize, NULL, FILE_BEGIN);
+        SetEndOfFile(file->hFile);
+
+        // Remap with new size
+        file->hMapping = CreateFileMappingA(file->hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
+        if (!file->hMapping) {
+            printf("InsertBytes: Failed to create new file mapping\n");
             return;
         }
-        file->buffer = new_buffer;
-        file->buffer_capacity = new_capacity;
+        file->buffer = (unsigned char *)MapViewOfFile(file->hMapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+        if (!file->buffer) {
+            printf("InsertBytes: Failed to map new view\n");
+            CloseHandle(file->hMapping);
+            return;
+        }
+
+        // Move data if not inserting at end
+        if ((size_t)offset < file->buffer_size) {
+            memmove(file->buffer + offset + size, file->buffer + offset, file->buffer_size - offset);
+        }
+        // Fill inserted region
+        memset(file->buffer + offset, (unsigned char)value, size);
+        file->buffer_size = new_size;
+        file->buffer_capacity = new_size;
+    } else {
+        // Standard buffer handling
+        size_t new_size = file->buffer_size + size;
+        if (new_size > file->buffer_capacity) {
+            size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
+            while (new_capacity < new_size)
+                new_capacity *= 2;
+            unsigned char *new_buffer = realloc(file->buffer, new_capacity);
+            if (!new_buffer) {
+                perror("InsertBytes: Memory allocation failed");
+                return;
+            }
+            file->buffer = new_buffer;
+            file->buffer_capacity = new_capacity;
+        }
+        // Move existing data after offset to make room.
+        memmove(file->buffer + offset + size, file->buffer + offset, file->buffer_size - offset);
+        // Fill inserted region with the specified value.
+        memset(file->buffer + offset, (unsigned char)value, size);
+        file->buffer_size = new_size;
     }
-    // Move existing data after offset to make room.
-    memmove(file->buffer + offset + size, file->buffer + offset, file->buffer_size - offset);
-    // Fill inserted region with the specified value.
-    memset(file->buffer + offset, (unsigned char)value, size);
-    file->buffer_size = new_size;
 }
 
 // Searches for an open file by its path.
@@ -258,29 +305,61 @@ int FileOpen(const char filename[], int runTemplate, char editAs[], int openDupl
             }
             file_manager.num_open_files++;
             file_manager.current_file_index = i;
-            
-            // Try to load file content from disk.
-            FILE *fp = fopen(filename, "rb");
-            if (fp) {
-                fseek(fp, 0, SEEK_END);
-                long fsize = ftell(fp);
-                rewind(fp);
-                if (fsize > 0) {
-                    file_manager.files[i].buffer = malloc(fsize);
-                    if (file_manager.files[i].buffer) {
-                        size_t read_bytes = fread(file_manager.files[i].buffer, 1, fsize, fp);
-                        file_manager.files[i].buffer_size = read_bytes;
-                        file_manager.files[i].buffer_capacity = read_bytes;
+            file_manager.files[i].hFile = INVALID_HANDLE_VALUE;
+            file_manager.files[i].hMapping = NULL;
+            file_manager.files[i].is_mmap = false;
+
+            // Try to open file and get size using Windows API for 64-bit support
+            HANDLE hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
+                                        FILE_SHARE_READ, NULL, OPEN_EXISTING,
+                                        FILE_ATTRIBUTE_NORMAL, NULL);
+
+            if (hFile != INVALID_HANDLE_VALUE) {
+                LARGE_INTEGER fileSize;
+                GetFileSizeEx(hFile, &fileSize);
+                uint64_t fsize = (uint64_t)fileSize.QuadPart;
+
+                // Use memory-mapped I/O for large files (> 100MB)
+                if (fsize > 100 * 1024 * 1024) {
+                    HANDLE hMapping = CreateFileMappingA(hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
+                    if (hMapping) {
+                        void *view = MapViewOfFile(hMapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+                        if (view) {
+                            file_manager.files[i].buffer = (unsigned char *)view;
+                            file_manager.files[i].buffer_size = fsize;
+                            file_manager.files[i].buffer_capacity = fsize;
+                            file_manager.files[i].hFile = hFile;
+                            file_manager.files[i].hMapping = hMapping;
+                            file_manager.files[i].is_mmap = true;
+                            DEBUG_LOG("FileOpen: Memory-mapped file %s (size: %llu)\n", filename, fsize);
+                        } else {
+                            CloseHandle(hMapping);
+                            CloseHandle(hFile);
+                            printf("FileOpen: Failed to map view of file\n");
+                        }
+                    } else {
+                        CloseHandle(hFile);
+                        printf("FileOpen: Failed to create file mapping\n");
                     }
                 } else {
-                    // Empty file: allocate a small initial buffer.
-                    file_manager.files[i].buffer = malloc(256);
-                    if (file_manager.files[i].buffer) {
-                        file_manager.files[i].buffer_size = 0;
-                        file_manager.files[i].buffer_capacity = 256;
+                    // Small file: load into memory
+                    CloseHandle(hFile);
+                    FILE *fp = fopen(filename, "rb");
+                    if (fp) {
+                        fseek(fp, 0, SEEK_END);
+                        long fsize_small = ftell(fp);
+                        rewind(fp);
+                        if (fsize_small > 0) {
+                            file_manager.files[i].buffer = malloc(fsize_small);
+                            if (file_manager.files[i].buffer) {
+                                size_t read_bytes = fread(file_manager.files[i].buffer, 1, fsize_small, fp);
+                                file_manager.files[i].buffer_size = read_bytes;
+                                file_manager.files[i].buffer_capacity = read_bytes;
+                            }
+                        }
+                        fclose(fp);
                     }
                 }
-                fclose(fp);
             } else {
                 // File doesn't exist: allocate an initial buffer.
                 file_manager.files[i].buffer = malloc(256);
@@ -386,8 +465,8 @@ int FindOpenFileW(const char *path) {
 }
 
 // Write bytes to the current file.
-void WriteBytes(unsigned char *buffer, int offset, int size) {
-    DEBUG_LOG("WriteBytes called:\n  offset: %d\n  size: %d\n", offset, size);
+void WriteBytes(unsigned char *buffer, int64_t offset, int64_t size) {
+    DEBUG_LOG("WriteBytes called:\n  offset: %lld\n  size: %lld\n", (long long)offset, (long long)size);
     if (file_manager.current_file_index < 0) {
         printf("WriteBytes: No file is currently open\n");
         return;
@@ -397,27 +476,34 @@ void WriteBytes(unsigned char *buffer, int offset, int size) {
         printf("WriteBytes: Invalid offset\n");
         return;
     }
-    int required_size = offset + size;
-    if (required_size > (int)file->buffer_size) {
-        if (required_size > (int)file->buffer_capacity) {
-            size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
-            while (new_capacity < (size_t)required_size)
-                new_capacity *= 2;
-            unsigned char *new_buffer = realloc(file->buffer, new_capacity);
-            if (!new_buffer) {
-                perror("WriteBytes: Memory allocation failed");
-                return;
+    size_t required_size = (size_t)(offset + size);
+    if (required_size > file->buffer_size) {
+        if (!file->is_mmap) {
+            // For non-mmap files, reallocate
+            if (required_size > file->buffer_capacity) {
+                size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
+                while (new_capacity < required_size)
+                    new_capacity *= 2;
+                unsigned char *new_buffer = realloc(file->buffer, new_capacity);
+                if (!new_buffer) {
+                    perror("WriteBytes: Memory allocation failed");
+                    return;
+                }
+                file->buffer = new_buffer;
+                file->buffer_capacity = new_capacity;
             }
-            file->buffer = new_buffer;
-            file->buffer_capacity = new_capacity;
+            // Fill gap with zeros if necessary.
+            if ((size_t)offset > file->buffer_size) {
+                memset(file->buffer + file->buffer_size, 0, (size_t)offset - file->buffer_size);
+            }
+            file->buffer_size = required_size;
+        } else {
+            // For mmap files, the buffer should already be extended by InsertBytes
+            printf("WriteBytes: Offset %lld exceeds mmap buffer size %zu\n", (long long)offset, file->buffer_size);
+            return;
         }
-        // Fill gap with zeros if necessary.
-        if (offset > (int)file->buffer_size) {
-            memset(file->buffer + file->buffer_size, 0, offset - file->buffer_size);
-        }
-        file->buffer_size = required_size;
     }
-    memcpy(file->buffer + offset, buffer, size);
+    memcpy(file->buffer + offset, buffer, (size_t)size);
 }
 
 // Read an unsigned 32-bit integer from the current file.
@@ -477,16 +563,28 @@ void FileSave() {
         return;
     }
     FileEntry *file = &file_manager.files[file_manager.current_file_index];
-    FILE *fp = fopen(file->path, "wb");
-    if (!fp) {
-        perror("FileSave: Failed to open file for writing");
-        return;
+
+    if (file->is_mmap) {
+        // Flush memory-mapped file to disk
+        if (!FlushViewOfFile(file->buffer, 0)) {
+            printf("FileSave: Failed to flush memory-mapped file\n");
+        }
+        if (!FlushFileBuffers(file->hFile)) {
+            printf("FileSave: Failed to flush file buffers\n");
+        }
+        DEBUG_LOG("FileSave: Flushed memory-mapped file\n");
+    } else {
+        FILE *fp = fopen(file->path, "wb");
+        if (!fp) {
+            perror("FileSave: Failed to open file for writing");
+            return;
+        }
+        size_t written = fwrite(file->buffer, 1, file->buffer_size, fp);
+        if (written != file->buffer_size) {
+            perror("FileSave: Failed to write complete data");
+        }
+        fclose(fp);
     }
-    size_t written = fwrite(file->buffer, 1, file->buffer_size, fp);
-    if (written != file->buffer_size) {
-        perror("FileSave: Failed to write complete data");
-    }
-    fclose(fp);
 }
 
 // Close the current file.
@@ -494,11 +592,27 @@ void FileClose() {
     DEBUG_LOG("FileClose called\n");
     int idx = file_manager.current_file_index;
     if (idx >= 0 && idx < MAX_OPEN_FILES && file_manager.files[idx].is_open) {
-        if (file_manager.files[idx].buffer) {
+        if (file_manager.files[idx].is_mmap) {
+            // Unmap and close memory-mapped file
+            if (file_manager.files[idx].buffer) {
+                UnmapViewOfFile(file_manager.files[idx].buffer);
+            }
+            if (file_manager.files[idx].hMapping) {
+                CloseHandle(file_manager.files[idx].hMapping);
+            }
+            if (file_manager.files[idx].hFile != INVALID_HANDLE_VALUE) {
+                CloseHandle(file_manager.files[idx].hFile);
+            }
+            file_manager.files[idx].hFile = INVALID_HANDLE_VALUE;
+            file_manager.files[idx].hMapping = NULL;
+            file_manager.files[idx].is_mmap = false;
+        } else if (file_manager.files[idx].buffer) {
             free(file_manager.files[idx].buffer);
-            file_manager.files[idx].buffer = NULL;
         }
+        file_manager.files[idx].buffer = NULL;
         file_manager.files[idx].is_open = false;
+        file_manager.files[idx].buffer_size = 0;
+        file_manager.files[idx].buffer_capacity = 0;
         DEBUG_LOG("FileClose: Closed file %s (index %d)\n", file_manager.files[idx].path, idx);
         file_manager.num_open_files--;
         file_manager.current_file_index = -1;
@@ -580,6 +694,332 @@ void init_emulator() {
     DEBUG_LOG("Emulator Initialized\n");
     file_manager.current_file_index = -1;
     init_file_manager();
+}
+
+// Get the size of the current file.
+size_t FileSize(void) {
+    DEBUG_LOG("FileSize called\n");
+    if (file_manager.current_file_index < 0) {
+        printf("FileSize: No file is currently open\n");
+        return 0;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    return file->buffer_size;
+}
+
+// Check if a file exists.
+int FileExists(const char *path) {
+    DEBUG_LOG("FileExists called with path: %s\n", path);
+    FILE *fp = fopen(path, "rb");
+    if (fp) {
+        fclose(fp);
+        return 1;
+    }
+    return 0;
+}
+
+// Read bytes from the current file into a buffer.
+void ReadBytes(unsigned char *buffer, int offset, int size) {
+    DEBUG_LOG("ReadBytes called:\n  offset: %d\n  size: %d\n", offset, size);
+    if (file_manager.current_file_index < 0) {
+        printf("ReadBytes: No file is currently open\n");
+        return;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    if (offset < 0 || offset + size > (int)file->buffer_size) {
+        printf("ReadBytes: Invalid range (offset=%d, size=%d, buffer_size=%zu)\n",
+               offset, size, file->buffer_size);
+        return;
+    }
+    memcpy(buffer, file->buffer + offset, size);
+}
+
+// Write an unsigned 16-bit integer to the current file.
+void WriteUShort(int offset, uint16_t value) {
+    DEBUG_LOG("WriteUShort called:\n  offset: %d\n  value: %u\n", offset, value);
+    if (file_manager.current_file_index < 0) {
+        printf("WriteUShort: No file is currently open\n");
+        return;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    int required_size = offset + sizeof(uint16_t);
+    if (required_size > (int)file->buffer_size) {
+        if (required_size > (int)file->buffer_capacity) {
+            size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
+            while (new_capacity < (size_t)required_size)
+                new_capacity *= 2;
+            unsigned char *new_buffer = realloc(file->buffer, new_capacity);
+            if (!new_buffer) {
+                perror("WriteUShort: Memory allocation failed");
+                return;
+            }
+            file->buffer = new_buffer;
+            file->buffer_capacity = new_capacity;
+        }
+        if (offset > (int)file->buffer_size) {
+            memset(file->buffer + file->buffer_size, 0, offset - file->buffer_size);
+        }
+        file->buffer_size = required_size;
+    }
+    memcpy(file->buffer + offset, &value, sizeof(uint16_t));
+}
+
+// Write an unsigned 8-bit integer to the current file.
+void WriteUByte(int offset, uint8_t value) {
+    DEBUG_LOG("WriteUByte called:\n  offset: %d\n  value: %u\n", offset, value);
+    if (file_manager.current_file_index < 0) {
+        printf("WriteUByte: No file is currently open\n");
+        return;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    int required_size = offset + 1;
+    if (required_size > (int)file->buffer_size) {
+        if (required_size > (int)file->buffer_capacity) {
+            size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
+            while (new_capacity < (size_t)required_size)
+                new_capacity *= 2;
+            unsigned char *new_buffer = realloc(file->buffer, new_capacity);
+            if (!new_buffer) {
+                perror("WriteUByte: Memory allocation failed");
+                return;
+            }
+            file->buffer = new_buffer;
+            file->buffer_capacity = new_capacity;
+        }
+        if (offset > (int)file->buffer_size) {
+            memset(file->buffer + file->buffer_size, 0, offset - file->buffer_size);
+        }
+        file->buffer_size = required_size;
+    }
+    file->buffer[offset] = value;
+}
+
+// Write a string to the current file.
+void WriteString(int64_t offset, const char *str) {
+    DEBUG_LOG("WriteString called:\n  offset: %lld\n  str: %s\n", (long long)offset, str);
+    if (!str) return;
+    size_t len = strlen(str);
+    WriteBytes((unsigned char *)str, offset, (int64_t)len);
+}
+
+// Delete bytes from the current file.
+void DeleteBytes(int64_t offset, int64_t size) {
+    DEBUG_LOG("DeleteBytes called:\n  offset: %lld\n  size: %lld\n", (long long)offset, (long long)size);
+    if (file_manager.current_file_index < 0) {
+        printf("DeleteBytes: No file is currently open\n");
+        return;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    if (offset < 0 || (size_t)offset >= file->buffer_size) {
+        printf("DeleteBytes: Invalid offset\n");
+        return;
+    }
+    if ((size_t)(offset + size) > file->buffer_size) {
+        size = (int64_t)(file->buffer_size - offset);
+    }
+
+    size_t new_size = file->buffer_size - (size_t)size;
+
+    if (file->is_mmap) {
+        // Move data after deleted region
+        memmove(file->buffer + offset, file->buffer + offset + size,
+                file->buffer_size - offset - size);
+
+        // Unmap and truncate the file
+        UnmapViewOfFile(file->buffer);
+        CloseHandle(file->hMapping);
+
+        LARGE_INTEGER newFileSize;
+        newFileSize.QuadPart = (LONGLONG)new_size;
+        SetFilePointerEx(file->hFile, newFileSize, NULL, FILE_BEGIN);
+        SetEndOfFile(file->hFile);
+
+        // Remap with new size
+        file->hMapping = CreateFileMappingA(file->hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
+        if (!file->hMapping) {
+            printf("DeleteBytes: Failed to create new file mapping\n");
+            return;
+        }
+        file->buffer = (unsigned char *)MapViewOfFile(file->hMapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+        if (!file->buffer) {
+            printf("DeleteBytes: Failed to map new view\n");
+            CloseHandle(file->hMapping);
+            return;
+        }
+        file->buffer_size = new_size;
+        file->buffer_capacity = new_size;
+    } else {
+        // Standard buffer handling
+        memmove(file->buffer + offset, file->buffer + offset + size,
+                file->buffer_size - offset - size);
+        file->buffer_size = new_size;
+    }
+}
+
+// Read an unsigned 64-bit integer from the current file.
+uint64_t ReadUInt64(int offset) {
+    DEBUG_LOG("ReadUInt64 called with offset: %d\n", offset);
+    if (file_manager.current_file_index < 0) {
+        printf("ReadUInt64: No file is currently open\n");
+        return 0;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    if (offset < 0 || offset + (int)sizeof(uint64_t) > (int)file->buffer_size) {
+        printf("ReadUInt64: Invalid range\n");
+        return 0;
+    }
+    uint64_t value;
+    memcpy(&value, file->buffer + offset, sizeof(uint64_t));
+    return value;
+}
+
+// Write an unsigned 64-bit integer to the current file.
+void WriteUInt64(int offset, uint64_t value) {
+    DEBUG_LOG("WriteUInt64 called:\n  offset: %d\n  value: %llu\n", offset, (unsigned long long)value);
+    if (file_manager.current_file_index < 0) {
+        printf("WriteUInt64: No file is currently open\n");
+        return;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+    int required_size = offset + sizeof(uint64_t);
+    if (required_size > (int)file->buffer_size) {
+        if (required_size > (int)file->buffer_capacity) {
+            size_t new_capacity = file->buffer_capacity > 0 ? file->buffer_capacity * 2 : 256;
+            while (new_capacity < (size_t)required_size)
+                new_capacity *= 2;
+            unsigned char *new_buffer = realloc(file->buffer, new_capacity);
+            if (!new_buffer) {
+                perror("WriteUInt64: Memory allocation failed");
+                return;
+            }
+            file->buffer = new_buffer;
+            file->buffer_capacity = new_capacity;
+        }
+        if (offset > (int)file->buffer_size) {
+            memset(file->buffer + file->buffer_size, 0, offset - file->buffer_size);
+        }
+        file->buffer_size = required_size;
+    }
+    memcpy(file->buffer + offset, &value, sizeof(uint64_t));
+}
+
+// Show a directory selection dialog.
+const char *InputDirectory(const char *title, const char *default_path) {
+    DEBUG_LOG("InputDirectory called:\n  title: %s\n  default_path: %s\n", title, default_path);
+    static char path[MAX_PATH] = {0};
+
+    BROWSEINFOA bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.lpszTitle = title;
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+
+    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+    if (pidl != NULL) {
+        SHGetPathFromIDListA(pidl, path);
+        CoTaskMemFree(pidl);
+        DEBUG_LOG("InputDirectory: Directory selected: %s\n", path);
+        return path;
+    }
+    return "";
+}
+
+// Find first occurrence of a pattern in the current file.
+int64_t FindFirst(const char *pattern, int matchCase, int matchWholeWord,
+                  int wildcardMatchSingleChar, float wildcardMatchMultipleChar,
+                  int method, int64_t start, int64_t size) {
+    DEBUG_LOG("FindFirst called:\n  pattern: %s\n  start: %lld\n  size: %lld\n",
+              pattern, (long long)start, (long long)size);
+    (void)matchCase; (void)matchWholeWord; (void)wildcardMatchSingleChar;
+    (void)wildcardMatchMultipleChar; (void)method;
+
+    if (file_manager.current_file_index < 0) {
+        printf("FindFirst: No file is currently open\n");
+        return -1;
+    }
+    FileEntry *file = &file_manager.files[file_manager.current_file_index];
+
+    size_t pattern_len = strlen(pattern);
+    if (pattern_len == 0) return -1;
+
+    int64_t end = start + size;
+    if (end > (int64_t)file->buffer_size) {
+        end = (int64_t)file->buffer_size;
+    }
+
+    for (int64_t i = start; i <= end - (int64_t)pattern_len; i++) {
+        if (memcmp(file->buffer + i, pattern, pattern_len) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Find files matching a pattern in a directory.
+TFileList FindFiles(const char *dir, const char *pattern) {
+    DEBUG_LOG("FindFiles called:\n  dir: %s\n  pattern: %s\n", dir, pattern);
+    TFileList result = {0, NULL};
+
+    char search_path[MAX_PATH];
+    snprintf(search_path, MAX_PATH, "%s\\%s", dir, pattern);
+
+    WIN32_FIND_DATAA ffd;
+    HANDLE hFind = FindFirstFileA(search_path, &ffd);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        DEBUG_LOG("FindFiles: No files found\n");
+        return result;
+    }
+
+    // First pass: count files
+    int count = 0;
+    do {
+        if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            count++;
+        }
+    } while (FindNextFileA(hFind, &ffd) != 0);
+    FindClose(hFind);
+
+    if (count == 0) {
+        return result;
+    }
+
+    // Allocate array
+    result.file = malloc(count * sizeof(TFileEntry));
+    if (!result.file) {
+        perror("FindFiles: Memory allocation failed");
+        return result;
+    }
+
+    // Second pass: collect filenames
+    hFind = FindFirstFileA(search_path, &ffd);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        free(result.file);
+        result.file = NULL;
+        return result;
+    }
+
+    int idx = 0;
+    do {
+        if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            strncpy(result.file[idx].filename, ffd.cFileName, 259);
+            result.file[idx].filename[259] = '\0';
+            idx++;
+        }
+    } while (FindNextFileA(hFind, &ffd) != 0 && idx < count);
+    FindClose(hFind);
+
+    result.filecount = idx;
+    DEBUG_LOG("FindFiles: Found %d files\n", result.filecount);
+    return result;
+}
+
+// Free a TFileList structure.
+void FreeFindFiles(TFileList *fl) {
+    if (fl && fl->file) {
+        free(fl->file);
+        fl->file = NULL;
+        fl->filecount = 0;
+    }
 }
 
 /*

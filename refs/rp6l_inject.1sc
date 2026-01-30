@@ -179,6 +179,10 @@ if (fl.filecount > 0) {
     for (i = 0; i < fl.filecount; i++) {
         inject_filename = SubStr(fl.file[i].filename, 0, Strlen(fl.file[i].filename) - 5);
 		index = GetFileIndex(inject_filename);
+		if (index == -1) {
+			Printf("Warning: File not found in rpack: %s\n", inject_filename);
+			continue;
+		}
 		Printf("%s\n", GetResourceName(index));
 		////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////////
